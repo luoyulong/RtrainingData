@@ -1,22 +1,15 @@
 #!/usr/bin/env Rscript
 #initialize env
+frame_files <- lapply(sys.frames(), function(x) x$ofile)
+frame_files <- Filter(Negate(is.null), frame_files)
+TOPDIR <- dirname(frame_files[[length(frame_files)]])
+setwd(TOPDIR)
 library("foreign")
 library("car")
 library("effects")
 library("plyr")
 library("ggplot2")
 
-if(grepl("/Users/luoyulong",getwd()))#In MacOS
-{
-  TOPDIR="/Users//luoyulong//workplace//program/R-script/"
-} else if("/home/zengping", getwd())
-{
-   TOPDIR = "/home/zengping/work/graduate/stencilautotuning/RtrainingData" 
-}
-else{#In Windows  
-  TOPDIR="C:/Users/luocean/Desktop/Mac-program/R-script/"
-}
-  setwd(TOPDIR) 
 #DATADIR=c('512/*/*.arff', '256/*/*.arff','128/*/*.arff')
 #DATADIR=c('unrolling-1-15/*/*.arff')
 DATADIR=c("data/data_0523/*/*.arff")
