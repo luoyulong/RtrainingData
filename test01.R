@@ -1,22 +1,22 @@
+#!/usr/bin/env Rscript
 #initialize env
+library("foreign")
+library("car")
+library("effects")
+library("plyr")
+library("ggplot2")
+
 if(grepl("/Users/luoyulong",getwd()))#In MacOS
 {
-  library("foreign", lib.loc="/Library/Frameworks/R.framework/Versions/3.1/Resources/library")
-  library("car", lib.loc="/Library/Frameworks/R.framework/Versions/3.1/Resources/library")
-  library("effects", lib.loc="/Library/Frameworks/R.framework/Versions/3.1/Resources/library")
-  library("plyr", lib.loc="/Library/Frameworks/R.framework/Versions/3.1/Resources/library")
-  library("ggplot2", lib.loc="/Library/Frameworks/R.framework/Versions/3.1/Resources/library")
   TOPDIR="/Users//luoyulong//workplace//program/R-script/"
-  setwd(TOPDIR) 
-}else{#In Windows  
-  library("foreign", lib.loc="E:/Program Files/R/R-3.1.0/library")
-  library("car", lib.loc="E:/Program Files/R/R-3.1.0/library")
-  library("effects", lib.loc="E:/Program Files/R/R-3.1.0/library")
-  library("plyr", lib.loc="E:/Program Files/R/R-3.1.0/library")
-  library("ggplot2", lib.loc="E:/Program Files/R/R-3.1.0/library")
-  TOPDIR="C:/Users/luocean/Desktop/Mac-program/R-script/"
-  setwd(TOPDIR) 
+} else if("/home/zengping", getwd())
+{
+   TOPDIR = "/home/zengping/work/graduate/stencilautotuning/RtrainingData" 
 }
+else{#In Windows  
+  TOPDIR="C:/Users/luocean/Desktop/Mac-program/R-script/"
+}
+  setwd(TOPDIR) 
 #DATADIR=c('512/*/*.arff', '256/*/*.arff','128/*/*.arff')
 #DATADIR=c('unrolling-1-15/*/*.arff')
 DATADIR=c("data/data_0523/*/*.arff")
