@@ -200,6 +200,34 @@ performanceDB.SQL.delete("type='float'")
 r=performanceDB.SQL.select("SELECT * FROM hps.experiment where OptType='Tiling_CUDA'  ;")
 
 
+formula.generate <- function(factors, times) {
+
+    # generate the formula
+    # Args:
+    #      factors: the factors of the formula,such as Fdencity,frequency
+    #      times: the time range of each factor such as 1:5
+    # returns: the generated factor like I(1/Fedencity) + Fencity
+    # 
+
+    stopifnot(is.character(factors))
+    stopifnot(is.numeric(times))
+    
+    fomula_str = c()
+    for (factor_item in factors) {
+       for (time_item in times) {
+           if(time_item == 1) {
+              tmp = factor_item
+           } else if(time_item == 0){
+              next
+           } else {
+              tmp = paste("I(",factor_item,"^",time_item,")")
+           }
+           fomula_str = c(fomula_str, tmp)
+       }
+    }
+    
+    return(paste(fomula_str,collapse="+"))
+}
 
 
 performanceDB.rightmodel=function(trainingset)
