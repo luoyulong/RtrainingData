@@ -1,3 +1,4 @@
+odbcConnect("hpsDB","hps","hps")
 inputTraningSet<-function(dirs)
 {
   #read all arff in DATADIR
