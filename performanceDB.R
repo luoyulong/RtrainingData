@@ -40,7 +40,8 @@ linkvalues=function(df,linker=",")
 }
 
 
-
+#open a SQL channel, and return;
+#especially， if the global channel "globalSQL" has been initialized, return the "globalSQL" directly.
 performanceDB.SQL.dbopen=function()
 {
   if(is.na(globalSQL))
@@ -50,11 +51,13 @@ performanceDB.SQL.dbopen=function()
   return (channel)
 }
 
+#close the SQL channel
 performanceDB.SQL.dbclose=function(channel)
 {
   if(channel!=globalSQL)
     close(channel)
 }
+#do seraching operation in database "dbname" "table "tbname" using condition "selectcondition"
 performanceDB.SQL.select=function(selectcondition="true",dbname="hps",tbname="testinsert")
 {
   selcmd=sprintf('select * from %s.%s where %s;',dbname,tbname,selectcondition)
@@ -64,6 +67,7 @@ performanceDB.SQL.select=function(selectcondition="true",dbname="hps",tbname="te
   return (result)  
 }
 
+#select all attribution that "attnames" given in three joined table:platform,specifics,optVariants 
 performanceDB.SQL.selectall=function(attnames)
 {
   names_str=paste(attnames,collapse=",")
@@ -76,8 +80,8 @@ performanceDB.SQL.selectall=function(attnames)
 }
 
 
-
-#must have same OptType
+#select all attribution that "attnames" given using select condition "condition" in two joined table:platform,specifics 
+#especially the attribution "opttype" of result instances must euqal to "opttype"
 performanceDB.SQL.selectspecificsWithSameOptType=function(attnames,opttype,condition="")
 {
   attnames=append(attnames,"specifics.id")
@@ -169,6 +173,8 @@ if(FALSE)
     performanceDB.update(newdata=rawdata[i,],snames=snames,vnames=vnames)
   close(globalSQL)
 }
+
+#perform preprocess on raw data during performing update produce
 performanceDB.SQL.rawdatapreprocess=function(trainingset)
 {
   tnames=names(trainingset)
@@ -196,13 +202,7 @@ performanceDB.SQL.rawdatapreprocess=function(trainingset)
 }
 
 
-getTilingsize<-function(C)
-{
-  tmparray<-unlist(strsplit(C,","))
-  return(as.numeric(tmparray[2]))
-}
-
-
+#"C" is a string that contain multiple number, this function return the product of these numbers.
 getProblemSizeSum<-function(C)
 {
   tmparray<-unlist(strsplit(C,","))
@@ -218,7 +218,8 @@ getProblemSizeSum<-function(C)
 
 
 
-#preprocss the 
+#preprocss the data in traningset,
+#and split the trainingset into multiple parts by "opttype" and return the collection.
 performanceDB.SQL.preprocessByOptType=function(trainingset)
 {
   trainingset=performanceDB.preprocess2num(trainingset)
@@ -233,11 +234,11 @@ performanceDB.SQL.preprocessByOptType=function(trainingset)
   
   #Tiling training
   tiling_data=subset(trainingset,OptType=="Tiling",)
-  # tiling_data$OptConfig<-unlist(lapply(tiling_data$OptConfig,getTilingsize))
+  #tiling_data$OptConfig<-unlist(lapply(tiling_data$OptConfig,function(x) getNumberFromStr(x,1)))
   
   #CUDABlocking tranining
   cudablock_data=subset(trainingset,OptType=="CUDABlocking",)
-  #cudablock_data$OptConfig<-unlist(lapply(cudablock_data$OptConfig,getTilingsize))
+  #cudablock_data$OptConfig<-unlist(lapply(cudablock_data$OptConfig,function(x) getNumberFromStr(x,1)))
   
   #SIMD training
   dosimd_data=subset(trainingset,OptType=="DoSIMD",)
@@ -264,6 +265,8 @@ performanceDB.SQL.delete=function(deletecondition,dbname="hps",tbname="testinser
   result=sqlQuery(channel,delcmd)
   performanceDB.SQL.dbclose(channel)
 }
+
+#perform a insert operation using "data" in table "tbname" of dabase "dbname"
 performanceDB.SQL.insert=function(data,dbname="hps",tbname="testinsert")
 {
   stopifnot(nrow(data)==1)
