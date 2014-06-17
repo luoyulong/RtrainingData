@@ -218,7 +218,7 @@ getProblemSizeSum<-function(C)
 
 
 
-
+#preprocss the 
 performanceDB.SQL.preprocessByOptType=function(trainingset)
 {
   trainingset=performanceDB.preprocess2num(trainingset)
@@ -320,17 +320,8 @@ performanceDB.SQL.update=function(data,dbname="hps",tbname="testinsert")
   performanceDB.SQL.dbclose(channel)
 }
 
-
-
-
-
-
-
-
-
-
-
-
+#the function return the similarity of vector a and b based on optimizing technology "opttype"
+#the input a,b is two specifics vector, the opttype determine the optimizing technology.
 performanceDB.distance=function(a,b,opttype)
 {
   rightmodel=performanceDB.rightmodel(opttype)
@@ -340,25 +331,25 @@ performanceDB.distance=function(a,b,opttype)
   return (r);
 }
 
-
+#this function will return a right model for opttype.
+#especally, if the model is not trained before, the new model will be tranined and be stored in a global variable "globalModel" and return;
+#or it will return the model in the global variale "globalModel"
 performanceDB.rightmodel=function(opttype="Tiling")
 {
   if(anyNA(globalModel[[opttype]]))
   {
     trainingset=performanceDB.SQL.selectall(rightmodel.att)
     trainingset=performanceDB.SQL.preprocessByOptType(trainingset)
-    
-    
     Optset=trainingset[[opttype]] 
     Optset$OptType=NULL
     allnames=names(Optset)
     thegflops=allnames %in% c("Gflops")
     trainingname=allnames[!thegflops]
     model_str=formula.generate(trainingname,2)
-    print("generate model")
+    print(sprintf("=========== generate %s model=========",opttype))
     rightmodel=eval(parse(text=sprintf("rightmodel<-lm(formula=Gflops~%s,data=Optset) ",model_str)))
     rightmodel$coefficients=abs(rightmodel$coefficients)
-    globalModel[[opttype]]=rightmodel
+    globalModel[[opttype]]<<-rightmodel
   }
   else
     rightmodel=globalModel[[opttype]]
@@ -366,12 +357,7 @@ performanceDB.rightmodel=function(opttype="Tiling")
 } 
 
 
-
-
-
-
-
-
+#the C is a string that contains multiple numbers like "a,b,c,d", this function return the idx'th number in C
 getNumberFromStr<-function(C,idx)
 {
   tmparray<-unlist(strsplit(C,","))
@@ -418,35 +404,11 @@ performanceDB.preprocess2num=function(trainingset)
 
 
 
-#getVariant test
-if(FALSE)
-{
-  globalSQL=performanceDB.SQL.dbopen() 
-  tmp=rightmodel.att
-  
-  
-  testdata0=performanceDB.SQL.selectall(tmp)
-  testdata1=performanceDB.SQL.preprocess(testdata0)
-  testdata2=testdata1[["Tiling"]]
-  testdata3=testdata2[1,]
-  
-  testdata3$OptType=NULL
-  testdata3$Gflops=NULL
-  testdata3$ProblemSizeSum=NULL
-  testdata3$ProblemSize="128,128,128"
-  testdata3$DataType="float"
-  testdata3$loop_radius="1,1,1"
-  testdata3$ProblemSizeSum=NULL
-  
-  snames=c("L1CacheSize","L2CacheSize","L3CacheSize","CoreNumber","ThreadsPerCore","frequency",
-           #specifics
-           "ProblemSize","DataType","Fdensity","workset","n_add","n_sub","n_mul","n_div",
-           "loop_radius","num_align","num_unalign","num_array","num_readcachelines")
-  bestvariants=performanceDB.getVariants(testdata3,snames,3,"Tiling")
-   bestvariants
-}
-
-
+#get n (number=n) best optimizing variants
+#data: contains the specific of target running instance
+#snames:determin the key attribution names of specifics in data,used for finding same/similar optimizion variant
+#number:determin the number of return variant
+#opttye:the optimizing technology that running instance want perform
 performanceDB.getVariants=function(data,snames,number,opttype="Tiling")
 {
   conditions_str=""
@@ -527,6 +489,35 @@ formula.generate <- function(factors, times) {
 }
 
 
+
+#getVariant test
+if(TRUE)
+{
+  globalSQL=performanceDB.SQL.dbopen() 
+  tmp=rightmodel.att
+  
+  testdata0=performanceDB.SQL.selectall(tmp)
+  testdata1=performanceDB.SQL.preprocessByOptType(testdata0)
+  testdata2=testdata1[["Tiling"]]
+  testdata3=testdata2[1,]
+  
+  testdata3$OptType=NULL
+  testdata3$Gflops=NULL
+  testdata3$ProblemSizeSum=NULL
+  testdata3$ProblemSize="128,128,128"
+  testdata3$DataType="float"
+  testdata3$loop_radius="1,1,1"
+  testdata3$ProblemSizeSum=NULL
+  
+  snames=c("L1CacheSize","L2CacheSize","L3CacheSize","CoreNumber","ThreadsPerCore","frequency",
+           #specifics
+           "ProblemSize","DataType","Fdensity","workset","n_add","n_sub","n_mul","n_div",
+           "loop_radius","num_align","num_unalign","num_array","num_readcachelines")
+  performanceDB.rightmodel("Tiling")
+  bestvariants=performanceDB.getVariants(testdata3,snames,3,"Tiling")
+  print("get best variants")
+  print(bestvariants)
+}
 
 
 
