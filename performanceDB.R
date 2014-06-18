@@ -49,23 +49,24 @@ linkvalues=function(df,linker=",")
   return (linked_str)
 }
 
-
-#open a SQL channel, and return;
-#especially， if the global channel "global.conn" has been initialized, return the "globalSQL" directly.
-performanceDB.SQL.dbopen = function() {
+performanceDB.SQL.dbopen <- function() {
+  # Open a SQL channel if the global.conn has not been initialized,
+  # and save the channel to global.conn, or just return global.conn
+  #
+  # Returns:
+  #   The channel opened or geted from the global
   if(is.na(global.conn)) {
-    channel = odbcConnect("myhps","hps","hps")
+    channel <- odbcConnect("myhps","hps","hps")
   }
   else {
-    channel = global.conn
+    channel <- global.conn
   }
   return(channel)
 }
 
 #close the SQL channel
-performanceDB.SQL.dbclose = function(channel)
-{
-  if(channel!=global.conn)
+performanceDB.SQL.dbclose = function(channel) {
+  if(channel != global.conn)
     close(channel)
 }
 #do seraching operation in database "dbname" "table "tbname" using condition "selectcondition"
