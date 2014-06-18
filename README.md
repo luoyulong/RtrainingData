@@ -5,7 +5,7 @@ performanceDB.R 包含一些操作数据库和建模的函数
 ## 代码风格
 本项目暂约定一下代码风格(不断逐条添加中)，该规范参考[Google R style guide](http://google-styleguide.googlecode.com/svn/trunk/Rguide.xml)
 ###1. 关于空格
-- 所有代码使用4个空格缩进
+- 所有代码使用2个空格缩进
 - 所有二元操作符两边添加空格(=, +, -, <-, etc)，除函数定义时的可选参数赋值中的"="
 - "," 和for循环语句中的";" 后面跟上一个空格
 - 条件、分支保留字，如 if for while else switch 等后添加一个空格
