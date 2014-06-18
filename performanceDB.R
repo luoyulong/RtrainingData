@@ -1,4 +1,14 @@
-globalSQL=NA
+#!/usr/bin/env Rscript
+# 
+# Author:        luoyulong(luoyulong@ncic.ac.cn)
+# Modification:  zengping(zengping@ncic.ac.cn)
+# Date:          2014-06-18
+#
+# Desc: This file is for build model and apply some function to operate the database.
+
+library(RODBC)
+
+global.conn = NA  # hold the global connection of the mysql dababase
 globalModel=list(Tiling=NA,CUDABlocking=NA,Unrolling=NA,Dosimd=NA,OMP=NA)
 rightmodel.att=c("L1CacheSize","L2CacheSize","L3CacheSize","CoreNumber","ThreadsPerCore","frequency",
                  #specifics
@@ -41,20 +51,21 @@ linkvalues=function(df,linker=",")
 
 
 #open a SQL channel, and return;
-#especially， if the global channel "globalSQL" has been initialized, return the "globalSQL" directly.
-performanceDB.SQL.dbopen=function()
-{
-  if(is.na(globalSQL))
-    channel=odbcConnect("myhps","hps","hps")
-  else
-    channel=globalSQL
-  return (channel)
+#especially， if the global channel "global.conn" has been initialized, return the "globalSQL" directly.
+performanceDB.SQL.dbopen = function() {
+  if(is.na(global.conn)) {
+    channel = odbcConnect("myhps","hps","hps")
+  }
+  else {
+    channel = global.conn
+  }
+  return(channel)
 }
 
 #close the SQL channel
-performanceDB.SQL.dbclose=function(channel)
+performanceDB.SQL.dbclose = function(channel)
 {
-  if(channel!=globalSQL)
+  if(channel!=global.conn)
     close(channel)
 }
 #do seraching operation in database "dbname" "table "tbname" using condition "selectcondition"
@@ -162,7 +173,7 @@ performanceDB.update=function(newdata,snames,vnames)
 #undate test
 if(FALSE)
 {
-  globalSQL=performanceDB.SQL.dbopen()
+  global.conn=performanceDB.SQL.dbopen()
   rawdata=performanceDB.SQL.select("TRUE",dbname="hps",tbname="experiment");
   rawdata=performanceDB.SQL.rawdatapreprocess(rawdata);
   allnames=names(rawdata)
@@ -171,7 +182,7 @@ if(FALSE)
   snames=allnames[!vnames2]
   for(i in 1:nrow(rawdata))
     performanceDB.update(newdata=rawdata[i,],snames=snames,vnames=vnames)
-  close(globalSQL)
+  close(global.conn)
 }
 
 #perform preprocess on raw data during performing update produce
@@ -496,7 +507,7 @@ formula.generate <- function(factors, times) {
 #getVariant test
 if(TRUE)
 {
-  globalSQL=performanceDB.SQL.dbopen() 
+  global.conn=performanceDB.SQL.dbopen() 
   tmp=rightmodel.att
   
   testdata0=performanceDB.SQL.selectall(tmp)
