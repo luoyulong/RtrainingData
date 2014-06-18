@@ -29,3 +29,63 @@ FunctionName
 例外: 当创建一个含类 (class) 属性的对象时, 函数名 (也是constructor) 和类名 (class) 应当匹配 (例如, lm). 
 kConstantName 
 </pre>
+
+###4. 文件各个部分顺序
+- #!/usr/bin/env Rscript
+- 作者声明
+- 文件描述
+- source()和library()函数
+- 函数定义
+- 可执行代码
+- **对于测试代码需要放到一个单独的文件，如originFileName_test.R**
+<pre>
+#!/usr/bin/env Rscript
+#
+# Author: XXX(XXX@xx.com)
+# Date: 2016-12-3
+#
+# Desc:
+#     This file is for XXX
+
+source("XX.R")
+library(RODBC)
+</pre>
+###5. 关于注释
+- 代码注释在#后需要添加一个空格
+- 短的注释需要在代码后面添加2个空格
+<pre>
+# Create histogram of frequency of campaigns by pct budget spent.
+hist(df$pct.spent,
+     breaks = "scott",  # method for choosing number of buckets
+     main   = "Histogram: fraction budget spent by campaignid",
+     xlab   = "Fraction of budget spent",
+     ylab   = "Frequency (count of campaignids)")
+</pre>
+- 函数注释如下
+<pre>
+CalculateSampleCovariance <- function(x, y, verbose = TRUE) {
+  # Computes the sample covariance between two vectors.
+  #
+  # Args:
+  #   x: One of two vectors whose sample covariance is to be calculated.
+  #   y: The other vector. x and y must have the same length, greater than one,
+  #      with no missing values.
+  #   verbose: If TRUE, prints sample covariance; if not, not. Default is TRUE.
+  #
+  # Returns:
+  #   The sample covariance between x and y.
+  n <- length(x)
+  # Error handling
+  if (n <= 1 || n != length(y)) {
+    stop("Arguments x and y have different lengths: ",
+         length(x), " and ", length(y), ".")
+  }
+  if (TRUE %in% is.na(x) || TRUE %in% is.na(y)) {
+    stop(" Arguments x and y must not have missing values.")
+  }
+  covariance <- var(x, y)
+  if (verbose)
+    cat("Covariance = ", round(covariance, 4), ".\n", sep = "")
+  return(covariance)
+}
+</pre>
