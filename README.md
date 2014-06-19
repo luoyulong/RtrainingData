@@ -1,7 +1,8 @@
 #RtrainingData
 ## 关于
 利用R语言来挖掘特征参数、优化参数与性能之间的关系
-performanceDB.R 包含一些操作数据库和建模的函数
+- performanceDB.R 包含一些操作数据库和建模的函数
+- test 文件夹包含一些R的测试文件
 ## 代码风格
 本项目暂约定一下代码风格(不断逐条添加中)，该规范参考[Google R style guide](http://google-styleguide.googlecode.com/svn/trunk/Rguide.xml)
 ### 关于空格
@@ -93,3 +94,6 @@ CalculateSampleCovariance <- function(x, y, verbose = TRUE) {
   return(covariance)
 }
 </pre>
+
+###其他
+- **一行语句不超过80个字符**
