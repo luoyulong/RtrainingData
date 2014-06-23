@@ -7,11 +7,7 @@
 # Desc: This file is for build model and apply some function to operate the database.
 
 library(RODBC)
-
 global.conn <- NA  # hold the global connection of the mysql dababase
-global.model <- list(Tiling = NA, CUDABlocking = NA,
-                     Unrolling = NA, Dosimd = NA, OMP = NA) # The right model
-
 rightmodel.att <- c("L1CacheSize", "L2CacheSize", "L3CacheSize",
                     "CoreNumber", "ThreadsPerCore", "frequency",  # Specifics attributes
                     "ProblemSize", "DataType", "Fdensity", 
@@ -106,7 +102,7 @@ performanceDB.SQL.select <- function(selectcondition = "true",
                     dbname, tbname, selectcondition)
   conn <- performanceDB.SQL.dbopen()
   result <- sqlQuery(conn,selcmd)
-
+  
   return(result)  
 }
 
@@ -146,11 +142,11 @@ performanceDB.SQL.selectspecificsWithSameOptType <- function(attnames,
   #   The dataframe which has been selected
   attnames <- append(attnames, "specifics.id")
   names_str <- paste(attnames, collapse = ",")
-
+  
   if(condition != "") {
     condition <- paste(condition, "and")
   }
-
+  
   selcmd <- sprintf('select %s from specifics join platform on 
                     (specifics.PlatformId = platform.id) where %s specifics.id in 
                     (select SpecificsId from optVariant where OptType = "%s");',
@@ -208,7 +204,7 @@ performanceDB.update <- function(newdata, snames, vnames) {
       factor <- 1.2
       variantdata <- cbind(newdata[vnames], data.frame("SpecificsId" = specificId))
       variantdata$Gflops <- (targetInDB2$Gflops + 
-                             variantdata$Gflops * factor) / (1 + factor)
+                               variantdata$Gflops * factor) / (1 + factor)
       variantdata$id <- targetInDB2$id
       performanceDB.SQL.update(variantdata,dbname = "hps", tbname = "optVariant")
     }
@@ -223,7 +219,7 @@ performanceDB.SQL.rawdatapreprocess <- function(trainingset) {
   # 
   # Returns:
   #   The preprocessed data
-
+  
   tnames <- names(trainingset)
   for(tn in tnames) {
     if(is.factor(trainingset[1,tn])) {
@@ -234,7 +230,7 @@ performanceDB.SQL.rawdatapreprocess <- function(trainingset) {
   # Count Gflops
   trainingset$ProblemSizeSum <- unlist(lapply(trainingset$ProblemSize, GetProblemSizeSum))
   trainingset$Gflops <- trainingset$Steps * trainingset$ProblemSizeSum * 
-                        trainingset$Fdensity / trainingset$P_WALL_CLOCK_TIME/1000
+    trainingset$Fdensity / trainingset$P_WALL_CLOCK_TIME/1000
   
   # Filter attribution
   trainingset$id <- NULL
@@ -246,7 +242,7 @@ performanceDB.SQL.rawdatapreprocess <- function(trainingset) {
   trainingset$PAPI_L2_TCM <- NULL
   
   trainingset$OptType[trainingset$OptType == ""] <- "Origin"
-
+  
   return(trainingset);
 }
 
@@ -262,11 +258,11 @@ GetProblemSizeSum <- function(strs) {
   tmparray <- unlist(strsplit(strs, ","))
   tmparray <- as.integer(tmparray)
   pss <- 1;
-
+  
   for(tmp in tmparray) {
     pss <- pss*tmp
   }
-
+  
   return(pss)
 }
 
@@ -310,7 +306,7 @@ performanceDB.SQL.delete <- function(deletecondition,
   #   deletecondition: The condition string in the where block of sql
   #   dbname: The database name
   #   tbname: The table name
-
+  
   delcmd <- sprintf('delete from %s.%s where %s',
                     dbname, tbname, deletecondition)
   conn <- performanceDB.SQL.dbopen()
@@ -367,7 +363,7 @@ performanceDB.SQL.update <- function(data, dbname = "hps",
   #   data: The data need to insert to database
   #   dbname: The database name
   #   tbname: The table name
-
+  
   db_tb <- sprintf('%s.%s', dbname, tbname)
   conn <- performanceDB.SQL.dbopen()
   
@@ -407,7 +403,7 @@ performanceDB.distance <- function(a, b, opttype) {
   # 
   # Returns:
   #    The distance of the two Specifics vector
-
+  
   rightmodel <- performanceDB.rightmodel(opttype)
   dif <- abs(a - b)
   #subtract the intercept
@@ -471,7 +467,7 @@ performanceDB.preprocess2num <- function(trainingset) {
     trainingset$DataType[trainingset$DataType == "double"] <- 8
     trainingset$DataType <- as.integer(trainingset$DataType)
   }
-
+  
   GetNumberFromStr <- function(strs, idx) {
     # Get the idx field of strs which splits by ','
     # Args: 
@@ -484,14 +480,14 @@ performanceDB.preprocess2num <- function(trainingset) {
     tmparray <- as.integer(tmparray)
     return(tmparray[idx])
   }
- 
+  
   if("loop_radius" %in% tnames) {
     trainingset$loop_radius_x <- unlist(lapply(trainingset$ProblemSize,
                                                function(x) GetNumberFromStr(x, 1)))
     trainingset$loop_radius_y <- unlist(lapply(trainingset$ProblemSize,
                                                function(x) GetNumberFromStr(x, 2)))
     trainingset$loop_radius_z <- unlist(lapply(trainingset$ProblemSize,
-                                            function(x) GetNumberFromStr(x, 3)))
+                                               function(x) GetNumberFromStr(x, 3)))
     trainingset$loop_radius <- NULL
   }
   
@@ -534,7 +530,7 @@ performanceDB.getVariants <- function(data, snames, number, opttype = "Tiling") 
       conditions_str <- paste(conditions_str, condit, sep=' and ')
     }
   }
-
+  
   #search in performance database
   SameSpecInDB <- performanceDB.SQL.selectspecificsWithSameOptType(snames,
                                                                    opttype, 
@@ -572,7 +568,6 @@ performanceDB.getVariants <- function(data, snames, number, opttype = "Tiling") 
   }
 }
 
-
 formula.generate <- function(factors, times) {
   # Generate the formula
   # Args:
@@ -602,3 +597,96 @@ formula.generate <- function(factors, times) {
   
   return(paste(fomula_str, collapse = "+"))
 }
+
+
+
+#getVariant test
+getVariantTest<-function()
+{
+  tmp=rightmodel.att
+  
+  testdata0=performanceDB.SQL.selectall(tmp)
+  testdata1=performanceDB.SQL.preprocessByOptType(testdata0)
+  testdata2=testdata1[["Tiling"]]
+  testdata3=testdata2[1,]
+  
+  testdata3$OptType=NULL
+  testdata3$Gflops=NULL
+  testdata3$ProblemSizeSum=NULL
+  testdata3$ProblemSize="128,128,128"
+  testdata3$DataType="float"
+  testdata3$loop_radius="1,1,1"
+  testdata3$ProblemSizeSum=NULL
+  
+  
+  testdata3$ProblemSize_x=NULL
+  testdata3$ProblemSize_y=NULL
+  testdata3$ProblemSize_z=NULL
+  testdata3$loop_radius_x=NULL
+  testdata3$loop_radius_y=NULL
+  testdata3$loop_radius_z=NULL
+  
+  snames=c("L1CacheSize","L2CacheSize","L3CacheSize","CoreNumber","ThreadsPerCore","frequency",
+           #specifics
+           "ProblemSize","DataType","Fdensity","workset","n_add","n_sub","n_mul","n_div",
+           "loop_radius","num_align","num_unalign","num_array","num_readcachelines")
+ 
+  print(testdata3)
+  for(i in 1:10)
+  print("")
+  print(snames)
+  bestvariants=performanceDB.getVariants(testdata3,snames,3,"Tiling")
+  print("get best variants")
+  print(bestvariants)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+global.conn=performanceDB.SQL.dbopen() 
+global.model <- list(Tiling = NA, CUDABlocking = NA,
+                     Unrolling = NA, Dosimd = NA, OMP = NA) # The right model
+if(file.exists("globalmodels.saved"))
+{
+  print("detect model file, loading------")
+  load("globalmodels.saved")
+  print("model file is loaded------------")
+}
+
+args<-commandArgs(TRUE)
+cmdtype<-as.character(args[1])
+if(!is.na(cmdtype))
+  if(cmdtype=="exec")#execute a function
+  {
+    execfunc<-as.character(args[2])
+    args_number<-as.integer(args[3])
+    print(sprintf ("the exec function %s with %d arguments",execfunc,args_number))
+    
+    args_str=""
+    if(args_number>0)
+      for(i in 4:(4+args_number-1))
+      { 
+        if(i==4)
+          args_str<-as.character(args[i])
+        else
+          args_str<-paste(args_str,as.character(args[i]),sep=",")
+      }
+    
+    exec_str=sprintf("%s(%s)",execfunc,args_str)
+    
+    #todo: check if the function is in current env
+    result<-eval(parse(text=sprintf("%s",exec_str)))
+    #print(result)
+  }
+close(global.conn)
+save(global.model,file="globalmodels.saved")
