@@ -26,6 +26,8 @@ getVariant.att <- c("L1CacheSize", "L2CacheSize", "L3CacheSize",
                     "num_readcachelines" # OptVariant attributes
 )
 
+global.model <- list(Tiling = NA, CUDABlocking = NA,
+                     Unrolling = NA, Dosimd = NA, OMP = NA) # The right model
 linkvalues <- function(df, linker = ",") {
   # Link value in dataframe with the linker and get a string
   # 
@@ -116,9 +118,7 @@ performanceDB.SQL.selectall <- function(attnames) {
   # Returns:
   #   The dataframe which has been selected
   names_str <- paste(attnames, collapse = ",")
-  selcmd <- sprintf('select %s from specifics join platform on 
-                    (specifics.PlatformId=platform.id) join optVariant 
-                    on (specifics.id=optVariant.SpecificsId);', names_str)
+  selcmd <- sprintf('select %s from specifics join platform on(specifics.PlatformId=platform.id) join optVariant on (specifics.id=optVariant.SpecificsId);', names_str)
   conn <- performanceDB.SQL.dbopen()
   sqlQuery(conn,"use hps")
   result <- sqlQuery(conn,selcmd)
@@ -142,7 +142,6 @@ performanceDB.SQL.selectspecificsWithSameOptType <- function(attnames,
   #   The dataframe which has been selected
   attnames <- append(attnames, "specifics.id")
   names_str <- paste(attnames, collapse = ",")
-  
   if(condition != "") {
     condition <- paste(condition, "and")
   }
@@ -157,13 +156,50 @@ performanceDB.SQL.selectspecificsWithSameOptType <- function(attnames,
   return(result)  
 }
 
-performanceDB.update <- function(newdata, snames, vnames) {
+performanceDB.getPlatformId <- function(platform)
+{
+  pnames=names(platform)
+  conditions_str <- "" 
+  for(pname in pnames[1:length(pnames)]) {
+    if(is.character(platform[,pname])) {
+      condit <- sprintf('%s="%s"', pname, platform[,pname])
+    }
+    else {
+      condit <- sprintf('%s=%s', pname, platform[,pname])
+    }
+    
+    if(pname == pnames[1]) {
+      conditions_str <- condit
+    }
+    else {
+      conditions_str <- paste(conditions_str, condit, sep =' and ')
+    }
+  }
+  # Search in performance database
+  targetInDB <- performanceDB.SQL.select(conditions_str, "hps", "platform")
+  if(nrow(targetInDB) == 0) 
+  {
+    tmp <- performanceDB.SQL.insert(platform,dbname = "hps", tbname = "platform")
+    pid <- tmp[1,]
+    return (pid)
+  }
+  if(nrow(targetInDB) >=1)
+  { 
+    pid <- targetInDB$id
+    return (pid)
+  }
+}
+
+
+performanceDB.update <- function(newdata, pnames, snames, vnames) {
   # update the database
   #
   # Args:
   #   newdata: A dataframe that contains the needed data
   #   snames: The column name need to insert to 'specifics' table
   #   vname: The column name need to insert to 'variant' table
+  newdata$PlatformId <- performanceDB.getPlatformId(newdata[pnames])
+  snames <- append(snames,"PlatformId")
   conditions_str <- "" 
   for(sname in snames[1:length(snames)]) {
     if(is.character(newdata[,sname])) {
@@ -234,14 +270,16 @@ performanceDB.SQL.rawdatapreprocess <- function(trainingset) {
   
   # Filter attribution
   trainingset$id <- NULL
-  trainingset$ProblemSizeSum <- NULL
+  
+  
+  trainingset$ProblemSizeSum <- NULL 
   trainingset$P_WALL_CLOCK_TIME <- NULL
   trainingset$PAPI_FP_INS <- NULL
   trainingset$PAPI_LD_INS <- NULL
   trainingset$PAPI_L1_DCM <- NULL
   trainingset$PAPI_L2_TCM <- NULL
-  
   trainingset$OptType[trainingset$OptType == ""] <- "Origin"
+  
   
   return(trainingset);
 }
@@ -411,7 +449,7 @@ performanceDB.distance <- function(a, b, opttype) {
   return(r);
 }
 
-performanceDB.rightmodel <- function(opttype="Tiling") {
+performanceDB.rightmodel <- function(opttype) {
   # Build the right model for opttype, especially, if the model has not been
   # trained before, the new model will be trained and stored in the global 
   # variable global.model, or it just return the model in the global variable
@@ -503,7 +541,7 @@ performanceDB.preprocess2num <- function(trainingset) {
   return (trainingset);
 }
 
-performanceDB.getVariants <- function(data, snames, number, opttype = "Tiling") {
+performanceDB.getVariants <- function(data, snames, number, opttype ) {
   # Get n best optimizing variants
   # 
   # Args:
@@ -552,16 +590,16 @@ performanceDB.getVariants <- function(data, snames, number, opttype = "Tiling") 
       }
     }
     specId <- similarSpec$id
-    selectcondition <- sprintf("SpecificsId=%d order by Gflops desc limit %d",
-                               specId, number)
+    selectcondition <- sprintf("SpecificsId=%d and OptType=\"%s\" order by Gflops desc limit %d",
+                               specId, opttype, number)
     variants  <- performanceDB.SQL.select(selectcondition,
                                           dbname="hps", tbname="optVariant")
     return(variants)
   }
   else if(nrow(SameSpecInDB) >= 1) {
     specId <- SameSpecInDB$id
-    selectcondition <- sprintf("SpecificsId=%d order by Gflops desc limit %d", 
-                               specId, number)
+    selectcondition <- sprintf("SpecificsId=%d and OptType=\"%s\" where OptType=$s order by Gflops desc limit %d", 
+                               specId,opttype, number)
     variants <- performanceDB.SQL.select(selectcondition,
                                          dbname="hps", tbname="optVariant")
     return(variants)
@@ -630,32 +668,100 @@ getVariantTest<-function()
            #specifics
            "ProblemSize","DataType","Fdensity","workset","n_add","n_sub","n_mul","n_div",
            "loop_radius","num_align","num_unalign","num_array","num_readcachelines")
- 
+  
   print(testdata3)
   for(i in 1:10)
-  print("")
+    print("")
   print(snames)
-  bestvariants=performanceDB.getVariants(testdata3,snames,3,"Tiling")
+  bestvariants=performanceDB.getVariants(testdata3,snames,3,"Unrolling")
   print("get best variants")
   print(bestvariants)
+}
+ 
+Commandline.getVariants <- function(data_str, opttype, nbegin, n, outputname="theoutput")
+{ 
+  dataItems <- unlist(strsplit(data_str, ":"))
+  datadf_str=""
+  for(item in dataItems)
+  {
+    itempair <- unlist(strsplit(item, "="))
+    if(datadf_str!="")
+      datadf_str=paste(datadf_str,sprintf("%s=%s",itempair[1],itempair[2]),sep=",")
+    else
+      datadf_str=sprintf("%s=%s",itempair[1],itempair[2])
+  }
+  datadf=eval(parse(text=sprintf("data.frame(%s,stringsAsFactors = FALSE)",datadf_str)))
+  bestvariants=performanceDB.getVariants( datadf, names(datadf), n, opttype)
+  bestconfigs <- bestvariants$OptConfig
+  
+  sink(outputname)
+  for(i in 1:length(bestconfigs))
+    cat(sprintf("%d\n",bestconfigs[i]))
+  sink()
+  
+}
+
+if(FALSE)
+{
+  platform_str="L1CacheSize=32:L2CacheSize=256:L3CacheSize=256:CoreNumber=16:ThreadsPerCore=1:frequency=2.6"
+  specific_str="ProgramingModel='cpu':Fdensity=8:workset=72:workset_inc=5:n_add=5:n_sub=1:n_mul=2:n_div=0:loop_radius='1,1,1':num_align=6:num_unalign=2:num_array=2:ProblemSize='512,512,512':DataType='double':FunctionName='STENCIL_3D_7P':Steps=10"
+  variant_str="OptType='Unrolling':OptConfig='100':P_WALL_CLOCK_TIME=0."
+  Commandline.Update(platform_str,specific_str,variant_str)
 }
 
 
 
+ 
+Commandline.Update <- function(platform_str,specific_str,variant_str)
+{ 
+  allstr=list(p=platform_str,s=specific_str,v=variant_str)
+  for( i in 1:3)
+  {
+    dataItems <- unlist(strsplit(allstr[[i]], ":"))
+    datadf_str=""
+    for(item in dataItems)
+    {
+      itempair <- unlist(strsplit(item, "="))
+      if(datadf_str!="")
+        datadf_str=paste(datadf_str,sprintf("%s=%s",itempair[1],itempair[2]),sep=",")
+      else
+        datadf_str=sprintf("%s=%s",itempair[1],itempair[2])
+    }
+    df=eval(parse(text=sprintf("data.frame(%s,stringsAsFactors = FALSE)",datadf_str)))
+    if(i==1)
+      platformdf=df
+    if(i==2)
+      specificdf=df
+    if(i==3)
+      variantdf=df
+  }
+  newdata=cbind(platformdf,specificdf,variantdf)
+  newdata=performanceDB.SQL.rawdatapreprocess(newdata)
+  
+  performanceDB.update(newdata,names(platformdf), names(specificdf), c("OptType","OptConfig","Gflops")) 
+}
 
 
+global.conn=odbcConnect("myhps","hps","hps") 
+#inputfromcommand(data_str,"Unrolling",5)
 
 
+#undate test
+if(FALSE)
+{
+  global.conn=performanceDB.SQL.dbopen()
+  rawdata=performanceDB.SQL.select("TRUE",dbname="hps",tbname="experiment");
+  rawdata=performanceDB.SQL.rawdatapreprocess(rawdata);
+  allnames=names(rawdata)
+  vnames=c("OptType","OptConfig","Gflops")
+  vnames2=allnames %in% vnames
+  snames=allnames[!vnames2]
+  for(i in 1:nrow(rawdata))
+    performanceDB.update(newdata=rawdata[i,],snames=snames,vnames=vnames)
+  close(global.conn)
+}
 
 
-
-
-
-
-
-global.conn=performanceDB.SQL.dbopen() 
-global.model <- list(Tiling = NA, CUDABlocking = NA,
-                     Unrolling = NA, Dosimd = NA, OMP = NA) # The right model
 if(file.exists("globalmodels.saved"))
 {
   print("detect model file, loading------")
