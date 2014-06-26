@@ -27,7 +27,7 @@ getVariant.att <- c("L1CacheSize", "L2CacheSize", "L3CacheSize",
 )
 
 global.model <- list(Tiling = NA, CUDABlocking = NA,
-                     Unrolling = NA, Dosimd = NA, OMP = NA) # The right model
+                     Unrolling = NA, DoSIMD = NA, OMP = NA) # The right model
 linkvalues <- function(df, linker = ",") {
   # Link value in dataframe with the linker and get a string
   # 
@@ -537,7 +537,17 @@ performanceDB.preprocess2num <- function(trainingset) {
     trainingset$ProblemSize_z <- unlist(lapply(trainingset$ProblemSize,
                                                function(x) GetNumberFromStr(x, 3)))
     trainingset$ProblemSize <- NULL
-  } 
+  }
+  
+  if("ProgrammingModel" %in% tnames) {
+    trainingset$ProgrammingModel <- NULL
+  }
+  if("FunctionName" %in% tnames) {
+    trainingset$FunctionName <- NULL
+  }
+  if("PlatformName" %in% tnames) {
+    trainingset$PlatformName <- NULL
+  }
   return (trainingset);
 }
 
@@ -575,7 +585,7 @@ performanceDB.getVariants <- function(data, snames, number, opttype ) {
                                                                    conditions_str)
   if(nrow(SameSpecInDB) == 0) {
     #find simliar point
-    specDB <- performanceDB.SQL.selectspecificsWithSameOptType(snames, opttype)
+    specDB <- performanceDB.SQL.selectspecificsWithSameOptType(snames, opttype,sprintf("ProgrammingModel='%s'",data$ProgrammingModel))
     specDB <- performanceDB.preprocess2num(specDB)
     data <- performanceDB.preprocess2num(data)
     #because the name of specDB and data have been change after function preprocess2num
@@ -677,29 +687,39 @@ getVariantTest<-function()
   print("get best variants")
   print(bestvariants)
 }
- 
+
+
+
+
+
 Commandline.getVariants <- function(data_str, opttype, nbegin, n, outputname="theoutput")
 { 
   dataItems <- unlist(strsplit(data_str, ":"))
-  datadf_str=""
+  datadf_str <- ""
   for(item in dataItems)
   {
     itempair <- unlist(strsplit(item, "="))
     if(datadf_str!="")
-      datadf_str=paste(datadf_str,sprintf("%s=%s",itempair[1],itempair[2]),sep=",")
+      datadf_str <- paste(datadf_str,sprintf("%s=%s",itempair[1],itempair[2]),sep=",")
     else
-      datadf_str=sprintf("%s=%s",itempair[1],itempair[2])
+      datadf_str <- sprintf("%s=%s",itempair[1],itempair[2])
   }
-  datadf=eval(parse(text=sprintf("data.frame(%s,stringsAsFactors = FALSE)",datadf_str)))
-  bestvariants=performanceDB.getVariants( datadf, names(datadf), n, opttype)
-  bestconfigs <- bestvariants$OptConfig
-  
+  datadf <- eval(parse(text=sprintf("data.frame(%s,stringsAsFactors = FALSE)",datadf_str)))
+  bestvariants <- performanceDB.getVariants( datadf, names(datadf), n, opttype)
+  bestconfigs <- as.character(bestvariants$OptConfig)
+  print(bestvariants)
+   
   sink(outputname)
   for(i in 1:length(bestconfigs))
-    cat(sprintf("%d\n",bestconfigs[i]))
+    cat(sprintf("%s\n",bestconfigs[i]))
   sink()
   
+  print("Commandline.getVariants running successfully!")
 }
+
+
+
+
 
 if(FALSE)
 {
@@ -707,11 +727,20 @@ if(FALSE)
   specific_str="ProgramingModel='cpu':Fdensity=8:workset=72:workset_inc=5:n_add=5:n_sub=1:n_mul=2:n_div=0:loop_radius='1,1,1':num_align=6:num_unalign=2:num_array=2:ProblemSize='512,512,512':DataType='double':FunctionName='STENCIL_3D_7P':Steps=10"
   variant_str="OptType='Unrolling':OptConfig='100':P_WALL_CLOCK_TIME=0."
   Commandline.Update(platform_str,specific_str,variant_str)
+  
+  Commandline.getVariants("Fdensity=8:workset=72:workset_inc=5:n_add=5:
+                        n_sub=1:n_mul=2:n_div=0:loop_radius='1,1,1':
+                        num_align=6:num_unalign=2:num_array=2:
+                        ProblemSize='512,512,512':DataType='double':
+                        Steps=10:L1CacheSize=32:L2CacheSize=256:
+                        L3CacheSize=256:CoreNumber=16:num_readcachelines=2:
+                        ThreadsPerCore=1:frequency=2.6:ProgrammingModel='cpu'", "DoSIMD",1,3,"opt")
+  
 }
 
 
 
- 
+
 Commandline.Update <- function(platform_str,specific_str,variant_str)
 { 
   allstr=list(p=platform_str,s=specific_str,v=variant_str)
@@ -774,9 +803,10 @@ cmdtype<-as.character(args[1])
 if(!is.na(cmdtype))
   if(cmdtype=="exec")#execute a function
   {
+    
     execfunc<-as.character(args[2])
     args_number<-as.integer(args[3])
-    print(sprintf ("the exec function %s with %d arguments",execfunc,args_number))
+    print(sprintf ("the function %s is executed with %d arguments",execfunc,args_number))
     
     args_str=""
     if(args_number>0)
@@ -791,8 +821,8 @@ if(!is.na(cmdtype))
     exec_str=sprintf("%s(%s)",execfunc,args_str)
     
     #todo: check if the function is in current env
-    result<-eval(parse(text=sprintf("%s",exec_str)))
+    result <- eval(parse(text=sprintf("%s",exec_str)))
     #print(result)
   }
-close(global.conn)
+
 save(global.model,file="globalmodels.saved")
