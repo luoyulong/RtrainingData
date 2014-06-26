@@ -4,5 +4,4 @@ variant_str="OptType='Unrolling':OptConfig='100':P_WALL_CLOCK_TIME=-1"
 
 Commandline.Update(platform_str,specific_str,variant_str)
 
-
-Rscript performanceDB.R exec CommandLine.getVariants 5 ProgramingModel='cpu':Fdensity=8:workset=72:workset_inc=5:n_add=5:n_sub=1:n_mul=2:n_div=0:loop_radius='1,1,1':num_align=6:num_unalign=2:num_array=2:ProblemSize='512,512,512':DataType='double':FunctionName='STENCIL_3D_7P':Steps=10:PlatformName='Intel(R) Xeon(R) CPU E5-2680 0 @ 2.70GHz-gpu200':L1CacheSize=32:L2CacheSize=256:L3CacheSize=256:CoreNumber=16:ThreadsPerCore=1:frequency=2.6 Tiling 1 3 opt
+Rscript /home/lyl/program/stencilautotuning/RtrainingData/performanceDB.R exec CommandLine.getVariants 5 ProgramingModel='cpu':Fdensity=8:workset=72:workset_inc=5:n_add=5:n_sub=1:n_mul=2:n_div=0:loop_radius='1,1,1':num_align=6:num_unalign=2:num_array=2:num_readcachelines=5:ProblemSize='512,512,512':DataType='double':Steps=10:L1CacheSize=32:L2CacheSize=256:L3CacheSize=256:CoreNumber=16:ThreadsPerCore=1:frequency=2.6 Tiling 1 3 opt
