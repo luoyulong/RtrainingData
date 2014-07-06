@@ -1,4 +1,3 @@
-
 library(RODBC)
 GetNumberFromStr <- function(strs, idx) {
   # Get the idx field of strs which splits by ','
@@ -15,27 +14,75 @@ GetNumberFromStr <- function(strs, idx) {
 GetRGB <- function(col)
 {
   maxval <- max(col)
-  r <- rgb((col/maxval)^2,(col/maxval)^2,(col/maxval)^2)
+  r <- rgb(1-(col/maxval)^4,1-(col/maxval)^4,1-(col/maxval)^4)
   return (r)
 }
 
+GetVariantInfo <- function(sid,number=-1,opttype=""){
+  conn <- odbcConnect("myhps","hps","hps")
+  if(opttype=="")
+    selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d order by Gflops desc;',sid)
+  else
+    selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d and OptType="%s" order by Gflops desc;',sid,opttype)
+  sqlQuery(conn,"use hps")
+  result <- sqlQuery(conn,selcmd,stringsAsFactors = FALSE)
+  close(conn)
+ # print(nrow(result))
+  if(number==-1)
+    return (result)
+  else 
+    return (result[1:number,])
+}
 
-conn <- odbcConnect("myhps","hps","hps")
-selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId>12695 and OptType="CUDABlocking" order by Gflops desc;')
-sqlQuery(conn,"use hps")
-result <- sqlQuery(conn,selcmd,stringsAsFactors = FALSE)
-result$x <- unlist(lapply(result$OptConfig,
-                          function(x) GetNumberFromStr(x, 2)))
-result$y <- unlist(lapply(result$OptConfig,
-                          function(x) GetNumberFromStr(x, 3)))
+GetSimilarNumber <- function(A,B)
+{
+  A <- as.data.frame(A,stringsAsFactors = FALSE)[!is.na(A),]
+  B <- as.data.frame(B,stringsAsFactors = FALSE)[!is.na(B),]
+  both <- union(A,B)
+  equals <- length(A)+length(B)-length(both)
+  return (equals)
+}
 
-result$col <- as.integer(result$Gflops)
+GetSimilarFactor <- function(a_id,b_id,size)
+{
+  
+  result1  <- GetVariantInfo(a_id,size,"Tiling")
+  result2 <- GetVariantInfo(b_id,size,"Tiling")
+  similarnumber <- GetSimilarNumber(result1$OptConfig,result2$OptConfig)
+  print(sprintf("Similar Rate: %d/%d",similarnumber,nrow(result1)))
+}
+basesize <- 10
+#GetSimilarFactor(12699,12682,basesize)
+#GetSimilarFactor(12699,12683,basesize)
+#GetSimilarFactor(12699,12686,basesize)
+#GetSimilarFactor(12699,12687,basesize)
 
-plot(result$x,result$y,
-     ylim=c(0,max(result$y)),
-     xlim=c(0,max(result$x)),
-     lty=1,col=GetRGB(result$col),type="p",xlab="block size $X",ylab="block size $Y")
+GetSimilarFactor(12699,12701,basesize)
+GetSimilarFactor(12699,12704,basesize)
+GetSimilarFactor(12699,12705,basesize)
+GetSimilarFactor(12699,12708,basesize)
+
+
+#result <- GetVariantInfo(12703)
 
 
 
-close(conn)
+
+#result$x <- unlist(lapply(result$OptConfig, function(x) GetNumberFromStr(x, 2)))
+#result$y <- unlist(lapply(result$OptConfig, function(x) GetNumberFromStr(x, 3)))
+
+#result$col <- result$Gflops
+
+#plot(result$x,result$y,
+#    ylim=c(0,max(result$y)),
+#   xlim=c(0,max(result$x)),
+#  pch=19,col=GetRGB(result$col),type="p",xlab="block size $X",ylab="block size $Y")
+
+#bestresult <- result[1:100,]
+#points(bestresult$x,bestresult$y,
+#      pch=19,col="red",type="p",xlab="block size $X",ylab="block size $Y ")
+
+
+
+
+#close(conn)
