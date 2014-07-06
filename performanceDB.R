@@ -146,9 +146,7 @@ performanceDB.SQL.selectspecificsWithSameOptType <- function(attnames,
     condition <- paste(condition, "and")
   }
   
-  selcmd <- sprintf('select %s from specifics join platform on 
-                    (specifics.PlatformId = platform.id) where %s specifics.id in 
-                    (select SpecificsId from optVariant where OptType = "%s");',
+  selcmd <- sprintf('select %s from specifics join platform on (specifics.PlatformId = platform.id) where %s specifics.id in (select SpecificsId from optVariant where OptType = "%s");',
                     names_str, condition, opttype)
   conn <- performanceDB.SQL.dbopen()
   sqlQuery(conn,"use hps;")
@@ -577,8 +575,7 @@ performanceDB.getVariants <- function(data, snames, number, opttype ) {
     else {
       conditions_str <- paste(conditions_str, condit, sep=' and ')
     }
-  }
-  
+  } 
   #search in performance database
   SameSpecInDB <- performanceDB.SQL.selectspecificsWithSameOptType(snames,
                                                                    opttype, 
@@ -608,7 +605,7 @@ performanceDB.getVariants <- function(data, snames, number, opttype ) {
   }
   else if(nrow(SameSpecInDB) >= 1) {
     specId <- SameSpecInDB$id
-    selectcondition <- sprintf("SpecificsId=%d and OptType=\"%s\" where OptType=$s order by Gflops desc limit %d", 
+    selectcondition <- sprintf("SpecificsId=%d and OptType=\"%s\" order by Gflops desc limit %d", 
                                specId,opttype, number)
     variants <- performanceDB.SQL.select(selectcondition,
                                          dbname="hps", tbname="optVariant")
@@ -708,7 +705,6 @@ Commandline.getVariants <- function(data_str, opttype, nbegin, n, outputname="th
   bestvariants <- performanceDB.getVariants( datadf, names(datadf), n, opttype)
   bestconfigs <- as.character(bestvariants$OptConfig)
   print(bestvariants)
-   
   sink(outputname)
   for(i in 1:length(bestconfigs))
     cat(sprintf("%s\n",bestconfigs[i]))
