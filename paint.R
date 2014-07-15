@@ -84,22 +84,75 @@ CompareTuning <- function(id_target,id_predict,opttype,per)
 
 
 
+NOS.similary <- function(x,N,Z)
+{
+  if(x < Z)
+    y <- 0
+  else
+    y <- N-x
+  return (y)
+}
+NOS <- 1:2000
+
+#plot(NOS,NOS.similary(NOS,2000,300),pch=19,type="l")
+
+
+#CompareTuning(12698,12703,"CUDABlocking",0.99)
 
 
 
+basesize <- 100
 
-CompareTuning(12698,12703,"CUDABlocking",0.99)
+performanceDB.GetSimilarFactor(12750,12777,basesize,"CUDABlocking")
 
+NOS_Similarty <- function(id_a,id_b,opttype)
+{
+  
+  FN <- nrow(performanceDB.GetVariantInfo(id_a,opttype))
+  r <- data.frame(x=FN,y=FN)
+  for(i in as.integer(FN/100):1)
+  {
+    tmpx <- i*100
+    tmpy <- performanceDB.GetSimilarFactor(id_a,id_b,tmpx,opttype)
+    tmpr <- data.frame(x=tmpx,y=tmpy)
+    r <- rbind(r,tmpr)
+  }
+  for(i in as.integer((90)/10):1)
+  {
+    tmpx <- i*10
+    tmpy <- performanceDB.GetSimilarFactor(id_a,id_b,tmpx,opttype)
+    tmpr <- data.frame(x=tmpx,y=tmpy)
+    r <- rbind(r,tmpr)
+  }
+  return (r)
+}
+NSdata <- NOS_Similarty(12753,12755,"CUDABlocking")
+plot((NSdata$x),NSdata$y,
+     xlim=c(max(NSdata$x),1),
+     col="blue",pch=19,type="b",size=2,xlab="Size of optimal space",ylab="Number of euqal configurations")
+abline(h=0,col="red")
 
-
-
-#performanceDB.GetSimilarFactor(12699,12682,basesize)
+#(xlim=c(max(NSdata$x)+100,1),ylim=c(max(NSdata$y)+100,1))
+p <- ggplot(NSdata,aes(x,y)) +geom_point(col="blue") 
+#p <- p+labs(xlab="NOS: size of optimal space",ylab="Number of equal configuration")
+p<- xlim(1,10)  #scale_x_reverse(limits=c(0, 5000))
+p
+print(NSdata[1,])
 #performanceDB.GetSimilarFactor(12699,12683,basesize)
 #performanceDB.GetSimilarFactor(12699,12686,basesize)
 #performanceDB.GetSimilarFactor(12699,12687,basesize)
 
 
-basesize <- 30
+dataset8 <- performanceDB.GetVariantInfo(12777,"Tiling")
+s8_4 <- unlist(lapply(dataset8$OptConfig, function(x) GetNumberFromStr(x,4)==1 ))  
+dataset8[s8_4,]
+
+ 
+
+
+
+
+
 performanceDB.GetSimilarFactor(12699,12701,basesize,"Tiling")
 #performanceDB.GetSimilarFactor(12699,12704,basesize)
 #performanceDB.GetSimilarFactor(12699,12705,basesize)
