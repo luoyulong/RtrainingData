@@ -596,14 +596,8 @@ performanceDB.BuildSimilarModel  <- function(pm,opttype="") {
       } 
     
     trainingSet$id=NULL
-    
-    for(i in 1:3)
-    {
-      if(i==1) 
-        model_str <- formula.generate(names(trainingSet[1:(length(trainingSet)-1)]),i)
-      else
-        model_str <-paste(model_str,formula.generate(names(trainingSet[1:(length(trainingSet)-1)]),i),sep="+")  
-    }
+    times <- -1:3
+    model_str <- formula.generate(names(trainingSet[1:(length(trainingSet)-1)]),times)
     print(model_str)
     similarmodel <- eval(parse(text=sprintf("rightmodel<-lm(formula=similar~%s,data=trainingSet) ",model_str)))
     # rightmodel$coefficients <- abs(rightmodel$coefficients)
@@ -791,17 +785,17 @@ formula.generate <- function(factors, times) {
   fomula_str <- c()
   for (factor_item in factors) {
     for (time_item in times) {
-      if(time_item == 1) {
-        tmp = factor_item
-      } else if(time_item == 0){
+      if(time_item == 0){
         next
       } else {
-        tmp <- paste("I(", factor_item, "^", time_item, ")")
+        if(time_item>0){
+          tmp <- paste("I(", factor_item, "^", time_item, ")")
+        } else {
+          tmp <- paste("I((", factor_item, "+0.001)^", time_item, ")")}
       }
       fomula_str <- c(fomula_str, tmp)
     }
   }
-  
   return(paste(fomula_str, collapse = "+"))
 }
 
