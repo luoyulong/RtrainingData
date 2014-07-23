@@ -580,14 +580,14 @@ performanceDB.BuildSimilarModel  <- function(pm,opttype="") {
     print("======begin to build similar model======")
     similarModel.att <- rightmodel.att[1:(length(rightmodel.att)-2)]
     similarModel.att <- append(similarModel.att, "specifics.id")
-    SpecificsSets <- performanceDB.SQL.selectSpecifics (attnames=similarModel.att,sprintf('ProgrammingModel="%s"',pm))
+    SpecificsSets <- performanceDB.SQL.selectSpecifics (attnames=similarModel.att,sprintf(' num_array<16 and ProgrammingModel="%s"',pm))
     SpecificsSets <- performanceDB.preprocess2num(SpecificsSets)
     trainingSet <- NA
     for(i in 1:(nrow(SpecificsSets)-1))
       for(j in (i+1):nrow(SpecificsSets))
       {
         dif <- abs(SpecificsSets[i,]-SpecificsSets[j,])
-        dif$similar <- performanceDB.GetSimilarFactor(SpecificsSets[i,]$id,SpecificsSets[j,]$id,50,opttype,TRUE)
+        dif$similar <- performanceDB.GetSimilarFactor(SpecificsSets[i,]$id,SpecificsSets[j,]$id,100,opttype,TRUE)
         
         if(is.na(trainingSet))
           trainingSet <- dif
@@ -597,9 +597,11 @@ performanceDB.BuildSimilarModel  <- function(pm,opttype="") {
     
     trainingSet$id=NULL
     times <- -1:3
+    #tmpTrainingSet <<- trainingSet
+    #trainingSet<-tmpTrainingSet
     model_str <- formula.generate(names(trainingSet[1:(length(trainingSet)-1)]),times)
     print(model_str)
-    similarmodel <- eval(parse(text=sprintf("rightmodel<-lm(formula=similar~%s,data=trainingSet) ",model_str)))
+    similarmodel <- eval(parse(text=sprintf("rightmodel<-glm(formula=similar~%s,family=poisson,data=trainingSet) ",model_str)))
     # rightmodel$coefficients <- abs(rightmodel$coefficients)
     global.model[[pm]]<<-similarmodel
   }

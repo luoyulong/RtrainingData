@@ -24,6 +24,7 @@ GetRGB <- function(col)
   return (r)
 }
 
+
 CompareTuning <- function(id_target,id_predict,opttype,per)
 {
   variants <- performanceDB.GetVariantInfo_noOrder(id_target,opttype)
@@ -33,7 +34,7 @@ CompareTuning <- function(id_target,id_predict,opttype,per)
     prdconfig <- variants2[i,]$OptConfig
     prdGflops <- variants[variants$OptConfig==prdconfig,]$Gflops
     if(length(prdGflops)>0) 
-      variants2[i,]$Gflops <- prdGflops
+      variants2[i,]$Gflops <- prdGflops[1]
     else
       variants2[i,]$Gflops <- 0.00001
   }
@@ -83,7 +84,7 @@ CompareTuning <- function(id_target,id_predict,opttype,per)
 
 
 
-#CompareTuning(12698,12703,"CUDABlocking",0.99)
+
 
 
 
@@ -153,6 +154,39 @@ searchMostsimilarByExp <- function(id,pm,base=50)
 
 
 
+PlotSimilary_exp_prd<- function(pm,base=100)
+{
+  snames=c("L1CacheSize","L2CacheSize","L3CacheSize","CoreNumber","ThreadsPerCore","frequency",
+           "ProblemSize","DataType","Fdensity","workset","n_add","n_sub","n_mul","n_div",
+           "loop_radius","num_align","num_unalign","num_array","num_readcachelines")
+  
+  specsSet <- performanceDB.SQL.selectSpecifics(attnames=c("specifics.id","ProgrammingModel","FunctionName"),sprintf("num_array <16 and ProgrammingModel='%s'",pm))
+  similary_exp_prd <- NA
+  for(i in 1:nrow(specsSet))
+  {
+    if(i<nrow(specsSet))
+      for(j in (i+1):nrow(specsSet))
+      {
+        i_spec <- performanceDB.SQL.selectSpecifics(attnames=snames,sprintf("specifics.id=%d",specsSet[i,"id"]))
+        i_spec_num <- performanceDB.preprocess2num(i_spec)
+        j_spec <- performanceDB.SQL.selectSpecifics(attnames=snames,sprintf("specifics.id=%d",specsSet[j,"id"]))
+        j_spec_num <- performanceDB.preprocess2num(j_spec)
+        i_spec_num$id <- NULL
+        j_spec_num$id <- NULL
+        
+        
+        tmp <- data.frame(x=exp(performanceDB.similarity(a=i_spec_num,b=j_spec_num,pm)[[1]]),y=performanceDB.GetSimilarFactor(specsSet[i,"id"],specsSet[j,"id"],base,""))
+        print(sprintf("%f,%f\n",tmp$x,tmp$y))
+        if(is.na(similary_exp_prd))
+          similary_exp_prd <- tmp
+        else
+          similary_exp_prd <- rbind(similary_exp_prd,tmp)
+      }
+  }
+  plot(similary_exp_prd$x,similary_exp_prd$y,xlab="Similary of running instances",ylab="Similarity of Optimization space")
+}
+
+#PlotSimilary_exp_prd("cpu")
 
 
 
@@ -175,8 +209,13 @@ if(FALSE){
         
       }  
   }
-  exp_sim <- searchMostsimilarByExp(12746,"cuda")
-  prd_sim <- searchMostsimilarByModel(12746,"cuda")
+  
+  targetId <- 12735
+  exp_sim <- searchMostsimilarByExp(targetId,"cpu")
+  CompareTuning(targetId,exp_sim[2,]$id,"",0.95)
+  exp_sim[2,]$id
+  
+  prd_sim <- searchMostsimilarByModel(12747,"cuda")
   
   
   
@@ -204,12 +243,21 @@ if(FALSE){
   
   NSdata <- NOS_Similarty(12781,12783,"")
   
+  NSdata <- NOS_Similarty(12750,12778,"")
+  
+  plot((NSdata$x),NSdata$y,#/(NSdata$x),
+       xlim=c(max(NSdata$x),1),
+       col="blue",pch=19,type="b", cex.lab=1.2,xlab="Size of Optimal Space",ylab="Number of Euqal Optimizing Parameters")
+  abline(h=0,col="red",lwd=2)
   
   
   plot((NSdata$x),NSdata$y/(NSdata$x),
        xlim=c(max(NSdata$x),1),
-       col="blue",pch=19,type="b",size=2,xlab="Size of optimal space",ylab="Number of euqal configurations")
-  abline(h=0,col="red")
+       col="blue",pch=19,type="b", cex.lab=1.2,xlab="Size of Optimal Space",ylab="Similarity Ratio")
+  abline(h=0,col="red",lwd=2)
+  
+  
+  
   
   #(xlim=c(max(NSdata$x)+100,1),ylim=c(max(NSdata$y)+100,1))
   p <- ggplot(NSdata,aes(x,y)) +geom_point(col="blue") 
