@@ -631,7 +631,7 @@ if (FALSE) {
 
 
 
-if (FALSE) {
+if (TRUE) {
   #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
   dataset <- data.frame(Applications = character(0), OMP=character(0), 
                         opttype=character(0), Gflops=numeric(0), stringsAsFactors=F)
@@ -771,13 +771,14 @@ if (FALSE) {
   dataset$Gflops = as.numeric(dataset$Gflops)
 
   ggplot(dataset, aes(OMP,Gflops, fill=opttype)) + 
-                     geom_bar(stat="identity") +
+                     geom_bar(stat="identity",width=0.6) +
+                     theme(legend.position="top",legend.title=element_blank()) + 
                      facet_grid(. ~ Applications)
-  ggsave(file="openmp_cpu.pdf", height=6,width=10)
+  ggsave(file="experiment/openmp_cpu.pdf", height=4,width=8)
 }
 
 
-if(TRUE)
+if(FALSE)
 {
   ################WEAk Scaling########################
   df <- NA 
@@ -796,9 +797,10 @@ if(TRUE)
   }
 
   library(ggplot2)
-  ggplot(df,aes(x = omp, y =speedup,colour=factor(df$application) )) +
+  p <- ggplot(df,aes(x = omp, y =speedup,colour=factor(df$application) )) +
     geom_point() + geom_line() 
 
+  print(p)
 
 }
 
