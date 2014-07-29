@@ -82,7 +82,7 @@ CompareTuning <- function(id_target,id_predict,opttype,per, function_name)
       break;
     }
   }
-
+  
   lines(prdprocess$step,prdprocess$max,col="red",lwd=3)
   
   maxperf <- max(prdprocess$max)
@@ -172,7 +172,7 @@ searchMostsimilarByExp <- function(id,pm,base=50)
 
 
 comparisonValues <- function(specificsId, programmingModel, 
-                           candicate_instance_cnt, candicate_config_in_instance_cnt) {
+                             candicate_instance_cnt, candicate_config_in_instance_cnt) {
   # get the comparison of origin and model selection of the specific id
   # 
   # Args:
@@ -195,7 +195,7 @@ comparisonValues <- function(specificsId, programmingModel,
   get_gest_gflops <- function(optType) {
     best_gflops <- 0;
     for( candicate_id in candicate_instance_ids) {      
-     configs <- performanceDB.GetVariantInfo(candicate_id, optType)[1:candicate_config_in_instance_cnt]$OptConfig
+      configs <- performanceDB.GetVariantInfo(candicate_id, optType)[1:candicate_config_in_instance_cnt]$OptConfig
       
       tmp_best_gflops <- optimized_gflops_configs[which(optimized_gflops_configs$OptConfig %in% configs),][1,1]
       if (best_gflops < tmp_best_gflops) {
@@ -204,7 +204,7 @@ comparisonValues <- function(specificsId, programmingModel,
     }
     return (best_gflops)
   }
- 
+  
   if (programmingModel == "cpu") {
     opttypes <- c("Tiling", "Unrolling")
   } else {
@@ -227,8 +227,8 @@ PlotSimilary_exp_prd<- function(pm,a,base=100)
            "loop_radius","num_align","num_unalign","num_array","num_readcachelines")
   
   specsSet <- performanceDB.SQL.selectSpecifics(
-                                                attnames=c("specifics.id","ProgrammingModel","FunctionName"),
-                                                sprintf("num_array <16  and ProgrammingModel='%s'",pm))
+    attnames=c("specifics.id","ProgrammingModel","FunctionName"),
+    sprintf("num_array <16  and ProgrammingModel='%s'",pm))
   similary_exp_prd <- a
   all_tmp <- NA
   for(i in 1:nrow(specsSet))
@@ -246,12 +246,12 @@ PlotSimilary_exp_prd<- function(pm,a,base=100)
         
         tmp <- data.frame(x=exp(performanceDB.similarity(a=i_spec_num,b=j_spec_num,pm)[[1]]),y=performanceDB.GetSimilarFactor(specsSet[i,"id"],specsSet[j,"id"],base,""))
         tmp2 <- data.frame(y=tmp$y,a=specsSet[i,"id"],b=specsSet[j,"id"])
-
+        
         if(is.na(all_tmp))
           all_tmp <- tmp2
         else
           all_tmp <- rbind(all_tmp,tmp2)
-
+        
         print(sprintf("%f,%f\n",tmp$x,tmp$y))
         if(is.na(similary_exp_prd))
           similary_exp_prd <- tmp
@@ -259,10 +259,10 @@ PlotSimilary_exp_prd<- function(pm,a,base=100)
           similary_exp_prd <- rbind(similary_exp_prd,tmp)
       }
   }
-
+  
   return(similary_exp_prd)
   #plot(similary_exp_prd$x,similary_exp_prd$y,xlab="Similary of running instances",ylab="Similarity of Optimization space")
-
+  
   #browser()
 }
 
@@ -276,57 +276,57 @@ PlotSimilary_exp_prd<- function(pm,a,base=100)
 
 
 if (FALSE) {
-   ########## CompareTuning ###############
-   function_name  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
-   cpu_targetId  <-  c(12699, 12735, 12739, 12738, 12736)
-   cpu_predictId  <- c(12792, 12792, 12787, 12786, 12793)
-
-   opar <- par(no.readonly=TRUE)
-   print("======Start cpu==============")
-   if (! file.exists("experiment")) {
-      dir.create("experiment")
-   }
-   setwd("experiment")
-   pdf("experiment_cpu.pdf",width=35,height=7) 
-   par(mfrow=c(1,5))
-   par(mar=c(4,6,4,2) + 0.1)
-   for (ind in 1:length(function_name)) {
-     print(sprintf("%s%s%s","==========",function_name[ind],"=========="))
-     CompareTuning(cpu_targetId[ind], cpu_predictId[ind],"",0.95, 
-                   function_name[ind])
-   }
-   dev.off()
-   
-
-   pdf("experiment_cuda.pdf",width=35,height=7) 
-   par(mfrow=c(1,5))
-   cuda_targetId  <-  c(12745, 12746, 12747, 12743, 12744)
-   cuda_predictId  <- c(12760, 12755, 12746, 12753, 12768)
-
-   print("======Start cuda==============")
-   for (ind in 1:length(function_name)) {
-     print(sprintf("%s%s%s","==========",function_name[ind],"=========="))
-     CompareTuning(cuda_targetId[ind], cuda_predictId[ind], "",0.95,
-                   function_name[ind])
-   }
-
-   dev.off()
-   par(opar)
-   setwd("..")
+  ########## CompareTuning ###############
+  function_name  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
+  cpu_targetId  <-  c(12699, 12735, 12739, 12738, 12736)
+  cpu_predictId  <- c(12792, 12792, 12787, 12786, 12793)
+  
+  opar <- par(no.readonly=TRUE)
+  print("======Start cpu==============")
+  if (! file.exists("experiment")) {
+    dir.create("experiment")
+  }
+  setwd("experiment")
+  pdf("experiment_cpu.pdf",width=35,height=7) 
+  par(mfrow=c(1,5))
+  par(mar=c(4,6,4,2) + 0.1)
+  for (ind in 1:length(function_name)) {
+    print(sprintf("%s%s%s","==========",function_name[ind],"=========="))
+    CompareTuning(cpu_targetId[ind], cpu_predictId[ind],"",0.95, 
+                  function_name[ind])
+  }
+  dev.off()
+  
+  
+  pdf("experiment_cuda.pdf",width=35,height=7) 
+  par(mfrow=c(1,5))
+  cuda_targetId  <-  c(12745, 12746, 12747, 12743, 12744)
+  cuda_predictId  <- c(12760, 12755, 12746, 12753, 12768)
+  
+  print("======Start cuda==============")
+  for (ind in 1:length(function_name)) {
+    print(sprintf("%s%s%s","==========",function_name[ind],"=========="))
+    CompareTuning(cuda_targetId[ind], cuda_predictId[ind], "",0.95,
+                  function_name[ind])
+  }
+  
+  dev.off()
+  par(opar)
+  setwd("..")
 }
 
 if (FALSE) {
- 
+  
   #############################################################################
   #    get the graph of the best gflops of each optimization methods
   #############################################################################
-
+  
   # Test the comparisonValues
   benchmark_names  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
-
+  
   cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
   cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
-
+  
   get_item <- function(specificId, programmingModel) {
     # get the item data of the specific id
     # 
@@ -342,10 +342,10 @@ if (FALSE) {
     item  <- c()
     origin_gflops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
     item["origin"]  <- origin_gflops
-
+    
     #unrolling_gflops <- performanceDB.GetVariantInfo(specificId, "Unrolling", 1)$Gflops
     #item["Unrolling"] <- unrolling_gflops 
-
+    
     #if (programmingModel == "cpu") {
     #  tiling_gflops <- performanceDB.GetVariantInfo(specificId, "Tiling", 1)$Gflops
     #  item["Tiling"] <- tiling_gflops
@@ -353,15 +353,15 @@ if (FALSE) {
     #  tiling_gflops <- performanceDB.GetVariantInfo(specificId, "CUDABlocking", 1)$Gflops
     #  item["CUDABlocking"] <- tiling_gflops
     #}
-
+    
     best_gflops <- performanceDB.GetVariantInfo(specificId, "",1)$Gflops
     item["HPS"] <- best_gflops
     #browser()
     #combined_gflops <- all_variants[grep("@",all_variants$OptConfig),][1,]$Gflops
     #item["combined"] <- combined_gflops
     return(data.frame(item))
-}
- 
+  }
+  
   ######## CPU #########################3
   #data <- data.frame(row.names=c("origin","Tiling", "Unrolling","combined"))
   data <- data.frame(row.names=c("origin","HPS"))
@@ -374,7 +374,7 @@ if (FALSE) {
       data <- specificId_data
     }
   } 
-
+  
   opar <- par(no.readonly=TRUE)
   setwd("experiment")
   pdf("optimize_compare_cpu.pdf",width=7,height=3.5)
@@ -389,7 +389,7 @@ if (FALSE) {
           legend.text=rownames(data),
           args.legend=list(cex=1.0),
           beside=TRUE)
-
+  
   dev.off()
   ######## CUDA #########################3
   #data <- data.frame(row.names=c("origin","CUDABlocking", "Unrolling","combined"))
@@ -415,7 +415,7 @@ if (FALSE) {
           legend=rownames(data),
           args.legend=list(cex=1.0,yjust=0.8),
           beside=TRUE)
-
+  
   dev.off()
   setwd("..")
   par(opar)
@@ -545,7 +545,7 @@ if (FALSE) {
   #plot(a$x,a$y,
   #     xlab="Similary of running instances",ylab="Similarity of Optimization space")
   a  <- PlotSimilary_exp_prd("cuda",a)
-
+  
   setwd("experiment")
   pdf("Similarit.pdf")
   plot(a$x,a$y,
@@ -559,8 +559,8 @@ if (FALSE) {
   ############################################################
   # Find the best similarity model to meet the cpu 
   ###########################################################
-
-
+  
+  
 }
 
 
@@ -568,21 +568,21 @@ if (FALSE) {
   ###########################################################
   # plot the graph of dsl,manual,generated code
   ##########################################################
-
-
+  
+  
   benchmark_names  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
   cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
   cuda_specificIds <- c(12745, 12746,12747, 12743,  12744)
-
+  
   #####################CPU################################
-
+  
   dataset <- data.frame(row.names=c("DSL", "Manual", "Generated"))
   dataset <- cbind(dataset, c(32,28,33))
   dataset <- cbind(dataset, c(10,45,93))
   dataset <- cbind(dataset, c(23,45,93))
   dataset <- cbind(dataset, c(11,10,15))
   dataset <- cbind(dataset, c(11,11,16))
-
+  
   colnames(dataset) <- benchmark_names
   setwd("experiment")
   opar <- par(no.readonly=TRUE)
@@ -590,16 +590,16 @@ if (FALSE) {
   #par(cex.main=10)
   pdf("code_amount_cpu.pdf",width=7,height=7)
   barplot(as.matrix(dataset),
-            main="The Amount Of Code",
-            ylab="Applications", xlab="Line Of Code",
-            xlim=c(0,100),
-            angle=45,
-            density=20,
-            horiz = TRUE,
-            legend.text=rownames(dataset),
-            args.legend = list(x = "topright",cex=1.5),
-            beside=TRUE)
- 
+          main="The Amount Of Code",
+          ylab="Applications", xlab="Line Of Code",
+          xlim=c(0,100),
+          angle=45,
+          density=20,
+          horiz = TRUE,
+          legend.text=rownames(dataset),
+          args.legend = list(x = "topright",cex=1.5),
+          beside=TRUE)
+  
   dev.off()
   #####################CUDA################################
   dataset <- data.frame(row.names=c("DSL", "Manual", "Generated"))
@@ -608,23 +608,23 @@ if (FALSE) {
   dataset <- cbind(dataset, c(23,92,100))
   dataset <- cbind(dataset, c(11,49,57))
   dataset <- cbind(dataset, c(11,52,65))
-
+  
   colnames(dataset) <- benchmark_names
   pdf("code_amount_cuda.pdf")
   barplot(as.matrix(dataset),
-            main="The Amount Of Code",
-            ylab="Applications", xlab="Line Of Code",
-            xlim=c(0,100),
-            cex.names=2,
-            horiz = TRUE,
-            legend.text=rownames(dataset),
-            args.legend = list(x = "topright",cex=1.5),
-            beside=TRUE)
- 
+          main="The Amount Of Code",
+          ylab="Applications", xlab="Line Of Code",
+          xlim=c(0,100),
+          cex.names=2,
+          horiz = TRUE,
+          legend.text=rownames(dataset),
+          args.legend = list(x = "topright",cex=1.5),
+          beside=TRUE)
+  
   par(opar)
   dev.off()
   setwd("..")
-
+  
 }
 
 
@@ -635,145 +635,191 @@ if (TRUE) {
   #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
   dataset <- data.frame(Applications = character(0), OMP=character(0), 
                         opttype=character(0), Gflops=numeric(0), stringsAsFactors=F)
-  #benchmark_names  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
-
+  benchmarkinfo  <-  data.frame(id=12699,name="FDTD",stringsAsFactors=F)
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12735,"HEAT_3D")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12736,"wave_3D")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12738,"possion_3D")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12739,"jacobi_3D")
+  
+  for(i in 1:nrow(benchmarkinfo))
+  {
+    info <- benchmarkinfo[i,]
+    nt_str <- "OptConfig not like '%omp%'"
+    nt_str <- append(nt_str,"OptConfig like '%omp@2'")
+    nt_str <- append(nt_str,"OptConfig like '%omp@4'")
+    nt_str <- append(nt_str,"OptConfig like '%omp@8'")
+    nt_str <- append(nt_str,"OptConfig like '%omp@16'")
+    n <- 1
+    for (nt in nt_str)
+    { 
+      #origin
+      opt_str <- "OptType='origin'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1)
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"Origin", tmp$Gflops) #tiling best
+      #simd+avx
+      opt_str <- "OptType='simd-avx'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1)
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"SIMD", tmp$Gflops) #tiling best
+      #tiling
+      opt_str <- "OptType like '%Tiling%'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1)
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"Tiling", tmp$Gflops) #tiling best
+      #unrolling
+      opt_str <- "OptType like '%Unrolling-Tiling%'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1)
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"Unrolling", tmp$Gflops) #tiling best 
+      n <- n*2 
+    }
+  }
+ #best performance achieve finished 
+  
+  
+  performanceDB.getVariants
   dataset[nrow(dataset)+1,] <- c("FDTD", "1","origin", 12) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "2","origin", 14) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "4","origin", 19) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "8","origin", 23) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "16","origin", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("FDTD", "1","SIMD", 12) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "2","SIMD", 14) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "4","SIMD", 19) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "8","SIMD", 23) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "16","SIMD", 27) 
-
-
+  
+  
   dataset[nrow(dataset)+1,] <- c("FDTD", "1","Tiling", 12) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "2","Tiling", 14) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "4","Tiling", 19) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "8","Tiling", 23) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "16","Tiling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("FDTD", "1","Unrolling", 12) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "2","Unrolling", 14) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "4","Unrolling", 19) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "8","Unrolling", 23) 
   dataset[nrow(dataset)+1,] <- c("FDTD", "16","Unrolling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("heat_3D", "1","origin", 12) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "2","origin", 14) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "4","origin", 19) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "8","origin", 23) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "16","origin", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("heat_3D", "1","SIMD", 12) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "2","SIMD", 14) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "4","SIMD", 19) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "8","SIMD", 23) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "16","SIMD", 27) 
-
-
+  
+  
   dataset[nrow(dataset)+1,] <- c("heat_3D", "1","Tiling", 12) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "2","Tiling", 14) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "4","Tiling", 19) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "8","Tiling", 23) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "16","Tiling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("heat_3D", "1","Unrolling", 12) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "2","Unrolling", 14) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "4","Unrolling", 19) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "8","Unrolling", 23) 
   dataset[nrow(dataset)+1,] <- c("heat_3D", "16","Unrolling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","origin", 12) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","origin", 14) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","origin", 19) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","origin", 23) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","origin", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","SIMD", 12) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","SIMD", 14) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","SIMD", 19) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","SIMD", 23) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","SIMD", 27) 
-
-
+  
+  
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","Tiling", 12) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","Tiling", 14) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","Tiling", 19) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","Tiling", 23) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","Tiling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","Unrolling", 12) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","Unrolling", 14) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","Unrolling", 19) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","Unrolling", 23) 
   dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","Unrolling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("possion_3D", "1","origin", 12) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "2","origin", 14) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "4","origin", 19) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "8","origin", 23) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "16","origin", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("possion_3D", "1","SIMD", 12) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "2","SIMD", 14) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "4","SIMD", 19) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "8","SIMD", 23) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "16","SIMD", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("possion_3D", "1","Tiling", 12) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "2","Tiling", 14) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "4","Tiling", 19) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "8","Tiling", 23) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "16","Tiling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("possion_3D", "1","Unrolling", 12) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "2","Unrolling", 14) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "4","Unrolling", 19) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "8","Unrolling", 23) 
   dataset[nrow(dataset)+1,] <- c("possion_3D", "16","Unrolling", 27) 
-
-
-
+  
+  
+  
   dataset[nrow(dataset)+1,] <- c("wave_3D", "1","origin", 12) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "2","origin", 14) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "4","origin", 19) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "8","origin", 23) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "16","origin", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("wave_3D", "1","SIMD", 12) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "2","SIMD", 14) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "4","SIMD", 19) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "8","SIMD", 23) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "16","SIMD", 27) 
-
-
+  
+  
   dataset[nrow(dataset)+1,] <- c("wave_3D", "1","Tiling", 12) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "2","Tiling", 14) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "4","Tiling", 19) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "8","Tiling", 23) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "16","Tiling", 27) 
-
+  
   dataset[nrow(dataset)+1,] <- c("wave_3D", "1","Unrolling", 12) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "2","Unrolling", 14) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "4","Unrolling", 19) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "8","Unrolling", 23) 
   dataset[nrow(dataset)+1,] <- c("wave_3D", "16","Unrolling", 27) 
-
+  
   library(ggplot2)
-
+  
   dataset$Applications = factor(dataset$Applications)
   dataset$OMP = factor(dataset$OMP,levels=c("1","2","4","8","16"))
   dataset$opttype = factor(dataset$opttype)
   dataset$Gflops = as.numeric(dataset$Gflops)
-
+  
   ggplot(dataset, aes(OMP,Gflops, fill=opttype)) + 
-                     geom_bar(stat="identity",width=0.6) +
-                     theme(legend.position="top",legend.title=element_blank()) + 
-                     facet_grid(. ~ Applications)
+    geom_bar(stat="identity",width=0.6) +
+    theme(legend.position="top",legend.title=element_blank()) + 
+    facet_grid(. ~ Applications)
   ggsave(file="experiment/openmp_cpu.pdf", height=4,width=8)
 }
 
@@ -795,13 +841,13 @@ if(FALSE)
       j <- j + 0.1
     }
   }
-
+  
   library(ggplot2)
   p <- ggplot(df,aes(x = omp, y =speedup,colour=factor(df$application) )) +
     geom_point() + geom_line() 
-
+  
   print(p)
-
+  
 }
 
 #close(conn)
@@ -828,7 +874,7 @@ if (FALSE) {
   for (specificId in cpu_specificIds) {
     ind <- ind + 1
     data <- data.frame(row.names=c("origin","Tiling", "Unrolling"))
-   
+    
     origin_gflops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
     item = c()
     item["DoSIMD"] <- origin_gflops
@@ -849,10 +895,10 @@ if (FALSE) {
       }
     } else if(length(grep(",",best$OptConfig))){
       item ["Tiling"] <- best$Gflops
-    
+      
     } else if (best$OptConfig != ""){
       item ["Unrolling"] <- best$Gflops
-   
+      
     } 
     item[setdiff(opttypes,names(item))] <- 0
     #browser()
@@ -924,12 +970,12 @@ if (FALSE) {
   }    
   colnames(data) <- names_data
   barplot(as.matrix(data),
-            main="cpu",
-            col=c("grey","pink","red"),
-            xlab="compared", ylab="gflops",
-            legend=c("DoSIMD","Tiling", "Unrolling"),
-            args.legend = list(x = "topleft"))
- 
+          main="cpu",
+          col=c("grey","pink","red"),
+          xlab="compared", ylab="gflops",
+          legend=c("DoSIMD","Tiling", "Unrolling"),
+          args.legend = list(x = "topleft"))
+  
   
 }
 
