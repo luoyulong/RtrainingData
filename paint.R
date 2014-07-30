@@ -318,13 +318,11 @@ if (FALSE) {
 if (FALSE) {
   
   #############################################################################
-  #    get the graph of the best gflops of each optimization methods
+  #    get the graph of the best gflops of each optimization methods on gpu
   #############################################################################
   
   # Test the comparisonValues
   benchmark_names  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
-  
-  cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
   cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
   
   get_item <- function(specificId, programmingModel) {
@@ -343,57 +341,16 @@ if (FALSE) {
     origin_gflops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
     item["origin"]  <- origin_gflops
     
-    #unrolling_gflops <- performanceDB.GetVariantInfo(specificId, "Unrolling", 1)$Gflops
-    #item["Unrolling"] <- unrolling_gflops 
-    
-    #if (programmingModel == "cpu") {
-    #  tiling_gflops <- performanceDB.GetVariantInfo(specificId, "Tiling", 1)$Gflops
-    #  item["Tiling"] <- tiling_gflops
-    #} else {
-    #  tiling_gflops <- performanceDB.GetVariantInfo(specificId, "CUDABlocking", 1)$Gflops
-    #  item["CUDABlocking"] <- tiling_gflops
-    #}
-    
     best_gflops <- performanceDB.GetVariantInfo(specificId, "",1)$Gflops
     item["HPS"] <- best_gflops
-    #browser()
-    #combined_gflops <- all_variants[grep("@",all_variants$OptConfig),][1,]$Gflops
-    #item["combined"] <- combined_gflops
+    
     return(data.frame(item))
   }
   
-  ######## CPU #########################3
-  #data <- data.frame(row.names=c("origin","Tiling", "Unrolling","combined"))
-  data <- data.frame(row.names=c("origin","HPS"))
   
-  for (specificId in cpu_specificIds) {
-    specificId_data <- get_item(specificId, "cpu")
-    if (length(data)) {
-      data <- cbind(data, specificId_data)
-    } else {
-      data <- specificId_data
-    }
-  } 
   
-  opar <- par(no.readonly=TRUE)
-  setwd("experiment")
-  pdf("optimize_compare_cpu.pdf",width=7,height=3.5)
-  #par(mfrow=c(1,2))
-  names(data) <- benchmark_names
-  print(data)
-  barplot(as.matrix(data),
-          main="CPU",
-          ylab="Gflops",
-          ylim = c(0,max(data)*1.2),
-          axes = TRUE,
-          legend.text=rownames(data),
-          args.legend=list(cex=1.0),
-          beside=TRUE)
-  
-  dev.off()
   ######## CUDA #########################3
-  #data <- data.frame(row.names=c("origin","CUDABlocking", "Unrolling","combined"))
-  data <- data.frame(row.names=c("origin","HPS"))
+  data <- data.frame(row.names=c("origin","HPS","patus"))
   
   for (specificId in cuda_specificIds) {
     specificId_data <- get_item(specificId, "cuda")
@@ -402,16 +359,24 @@ if (FALSE) {
     } else {
       data <- specificId_data
     }
-    #print(data)
   } 
+  patus <- c(69.3,87,49,52,43)
+  data <- rbind(patus,data)
   names(data) <- benchmark_names
+  row.names(data) <-c("patus","origin","+autotuning")
+  
   print(data)
-  pdf("optimize_compare_cuda.pdf",width=7,height=3.5)
+  pdf("optimize_compare_cuda.pdf",width=9,height=6)
   barplot(as.matrix(data),
           main="CUDA",
+          #  width=0.5,
           ylab="Gflops",
           ylim = c(0, 200),
+          xlab="Applications",
           axes = TRUE,
+          cex.main=2,
+          cex.lab=1.5,
+          cex.axis=1.5,
           legend=rownames(data),
           args.legend=list(cex=1.0,yjust=0.8),
           beside=TRUE)
@@ -422,6 +387,53 @@ if (FALSE) {
 }
 
 
+
+
+
+
+#paint the similar discovery
+similar_discovery <- function()
+{
+  NSdata1 <- NOS_Similarty(12750,12778,"")
+  NSdata2 <- NOS_Similarty(12781,12783,"")
+  
+  height <- 6
+  width <- 5.5
+  ca <- 1.5
+  cl <-1.5
+  cm <-2
+  ################# group B #####################
+  pdf("example_similar_number_50_78.pdf",height,width)
+  plot((NSdata1$x),NSdata1$y,
+       xlim=c(max(NSdata1$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Number of same strategies",main="Group A: Same Strategies")
+  abline(h=0,col="red")  
+  dev.off()
+  
+  pdf("example_similar_ratio_50_78.pdf",height,width)
+  plot((NSdata1$x),NSdata1$y/(NSdata1$x),
+       xlim=c(max(NSdata1$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Similarity ratio",main="Group A: Similarity Ratio")
+  abline(h=0,col="red")  
+  dev.off()
+  
+  ################# group B #####################
+  pdf("example_nosimilar_number_81_83.pdf",height,width)
+  plot((NSdata2$x),NSdata2$y,
+       xlim=c(max(NSdata2$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Number of same strategies",main="Group B: Same Strategies")
+  abline(h=0,col="red")  
+  dev.off()
+  
+  pdf("example_nosimilar_ratio_81_83.pdf",height,width)
+  plot((NSdata2$x),NSdata2$y/(NSdata2$x),
+       xlim=c(max(NSdata2$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Similarity ratio",main="Group B: Similarity Ratio")
+  abline(h=0,col="red")  
+  dev.off()
+  
+  
+}
 
 
 
@@ -478,14 +490,9 @@ if(FALSE){
   
   
   
-  NSdata <- NOS_Similarty(12763,12764,"")
   
   
   
-  plot((NSdata$x),NSdata$y/(NSdata$x),
-       xlim=c(max(NSdata$x),1),
-       col="blue",pch=19,type="b",size=2,xlab="Size of optimal space",ylab="Number of euqal configurations")
-  abline(h=0.5,col="red")
   
   #(xlim=c(max(NSdata$x)+100,1),ylim=c(max(NSdata$y)+100,1))
   p <- ggplot(NSdata,aes(x,y)) +geom_point(col="red") 
@@ -679,7 +686,7 @@ if (TRUE) {
       n <- n*2 
     }
   }
- #best performance achieve finished 
+  #best performance achieve finished 
   
   
   performanceDB.getVariants
