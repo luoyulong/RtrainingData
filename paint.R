@@ -274,14 +274,14 @@ GetEachOptBestGflops <- function() {
   # Returns: 
   #    The dataset contains the data. 
   #    names(dataset) == c("Appliction","OMP", "opttype", "Gflops")
-
+  
   dataset <- data.frame(Applications = character(0), OMP=character(0), 
                         opttype=character(0), Gflops=numeric(0), stringsAsFactors=F)
   benchmarkinfo  <-  data.frame(id=12699,name="FDTD",stringsAsFactors=F)
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12735,"HEAT_3D")
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12736,"wave_3D")
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12738,"possion_3D")
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12739,"jacobi_3D")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12735,"HEAT")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12736,"WAVE")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12738,"POISSON")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12739,"JACOBI")
   
   for(i in 1:nrow(benchmarkinfo))
   {
@@ -306,44 +306,44 @@ GetEachOptBestGflops <- function() {
       condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
       tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
       if(nrow(tmp)==1) 
-        dataset[nrow(dataset)+1,] <- c(info$name, n,"SIMD", tmp$Gflops) #tiling best
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"+SIMD+Cflag", tmp$Gflops) #tiling best
       
       #tiling
       opt_str <- "OptType like '%Tiling%' and OptType not like '%Unrolling%'"
       condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
       tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
       if(nrow(tmp)==1)
-        dataset[nrow(dataset)+1,] <- c(info$name, n,"Tiling", tmp$Gflops) #tiling best
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"+Tiling", tmp$Gflops) #tiling best
       #unrolling
       opt_str <- "OptType like '%Unrolling%'"
       condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
       tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
       if(nrow(tmp)==1)
-        dataset[nrow(dataset)+1,] <- c(info$name, n,"Unrolling", tmp$Gflops) #tiling best 
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"+Unrolling", tmp$Gflops) #tiling best 
       
       
       n <- n*2 
     }
   }
   print(dataset)
-
+  
   #best performance achieve finished 
   return(dataset)
-
+  
 }
 
 
 theme_my <- function() {
- require(grid)
- theme_bw() + theme(axis.title.x = element_text(face="bold", size=12),
-          axis.title.y = element_text(face="bold", size=12, angle=90),
-          panel.grid.major = element_blank(), # switch off major gridlines
-          panel.grid.minor = element_blank(), # switch off minor gridlines
-          legend.position = c(0.2,0.8), # manually position the legend (numbers being from 0,0 at bottom left ofwhole plot to 1,1 at top right)
-          legend.title = element_blank(), # switch off the legend title
-          legend.text = element_text(size=12),
-          legend.key.size = unit(1.5, "lines"),
-          legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
+  require(grid)
+  theme_bw() + theme(axis.title.x = element_text(face="bold", size=12),
+                     axis.title.y = element_text(face="bold", size=12, angle=90),
+                     panel.grid.major = element_blank(), # switch off major gridlines
+                     panel.grid.minor = element_blank(), # switch off minor gridlines
+                     legend.position = c(0.2,0.8), # manually position the legend (numbers being from 0,0 at bottom left ofwhole plot to 1,1 at top right)
+                     legend.title = element_blank(), # switch off the legend title
+                     legend.text = element_text(size=12),
+                     legend.key.size = unit(1.5, "lines"),
+                     legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
 }
 
 
@@ -358,7 +358,7 @@ theme_my <- function() {
 
 if (FALSE) {
   ########## CompareTuning ###############
-  function_name  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
+  function_name  <-  c("FDTD", "heat_3D", "JACOBI", "POISSON", "WAVE")
   cpu_targetId  <-  c(12699, 12735, 12739, 12738, 12736)
   cpu_predictId  <- c(12792, 12792, 12787, 12786, 12793)
   
@@ -403,7 +403,7 @@ if (FALSE) {
   #############################################################################
   
   # Test the comparisonValues
-  benchmark_names  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
+  benchmark_names  <-  c("FDTD", "heat_3D", "JACOBI", "POISSON", "WAVE")
   cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
   
   get_item <- function(specificId, programmingModel) {
@@ -428,7 +428,7 @@ if (FALSE) {
     return(data.frame(item))
   }
   
- 
+  
   
   
   ######## CUDA #########################3
@@ -659,7 +659,7 @@ if (FALSE) {
   ##########################################################
   
   
-  benchmark_names  <-  c("FDTD", "heat_3D", "jacobi_3D", "possion_3D", "wave_3D")
+  benchmark_names  <-  c("FDTD", "heat_3D", "JACOBI", "POISSON", "WAVE")
   cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
   cuda_specificIds <- c(12745, 12746,12747, 12743,  12744)
   
@@ -721,86 +721,95 @@ if (FALSE) {
 
 
 if (TRUE) {
-
+  
   ####################################################################
   ##           Plot the contribution of each opttype
   ####################################################################
   #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
-   
+  dataset <- GetEachOptBestGflops()
   library(ggplot2)
   
   dataset$Applications = factor(dataset$Applications)
   dataset$OMP = factor(dataset$OMP,levels=c("1","1.1","2","2.1","4","4.1","8","8.1","16","16.1"))
   dataset$opttype = factor(dataset$opttype)
   dataset$Gflops = as.numeric(dataset$Gflops)
-
+  
   # Compute the contribution of each opttype
   library("plyr")
   dataset <- ddply(dataset, c("Applications", "OMP"), 
-                              function(x){
-                                stopifnot(nrow(x) <= 4)  # Origin ,SIMD, Tiling, Unrolling
-                                GetGflops <- function(opttype) {
-                                  
-                                  gflops <- x[x$opttype==opttype,]$Gflops
-                                  if(length(gflops) == 0) {
-                                    gflops <- 0
-                                  }
-                                  return(gflops)
-                                }
-                                tmp_origin <- GetGflops("Origin")
-                                tmp_simd <- GetGflops("SIMD")
-                                tmp_tiling <- GetGflops("Tiling")
-                                tmp_unrolling <- GetGflops("Unrolling")
-
-                                origin <- tmp_origin
-                                simd <- ifelse(tmp_simd>tmp_origin, tmp_simd-tmp_origin, 0)
-                                tiling <- ifelse(tmp_tiling>tmp_simd,tmp_tiling-tmp_simd, 0)
-                                unrolling <- ifelse(tmp_unrolling>tmp_tiling, tmp_unrolling-tmp_tiling, 0)
-                                
-
-                                data.frame(opttype=c("Origin","+SIMD+Cflag","+Tiling","+Unrolling"),
-                                           Gflops=c(origin, simd, tiling, unrolling))
-                              })
-
+                   function(x){
+                     stopifnot(nrow(x) <= 4)  # Origin ,SIMD, Tiling, Unrolling
+                     GetGflops <- function(opttype) {
+                       
+                       gflops <- x[x$opttype==opttype,]$Gflops
+                       if(length(gflops) == 0) {
+                         gflops <- 0
+                       }
+                       return(gflops)
+                     }
+                     tmp_origin <- GetGflops("Origin")
+                     tmp_simd <- GetGflops("SIMD")
+                     tmp_tiling <- GetGflops("Tiling")
+                     tmp_unrolling <- GetGflops("Unrolling")
+                     
+                     origin <- tmp_origin
+                     simd <- ifelse(tmp_simd>tmp_origin, tmp_simd-tmp_origin, 0)
+                     tiling <- ifelse(tmp_tiling>tmp_simd,tmp_tiling-tmp_simd, 0)
+                     unrolling <- ifelse(tmp_unrolling>tmp_tiling, tmp_unrolling-tmp_tiling, 0)
+                     
+                     
+                     data.frame(opttype=c("Origin","+SIMD+Cflag","+Tiling","+Unrolling"),
+                                Gflops=c(origin, simd, tiling, unrolling))
+                   })
+  dataset$dsl="hps"
   # Add patus data
   levels(dataset$opttype) <- c(levels(dataset$opttype),"Patus")
-  dataset[nrow(dataset)+1,] <- c("FDTD", "1.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("FDTD", "2.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("FDTD", "8.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("FDTD", "4.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("FDTD", "16.1","Patus", 12)
-
-  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "1.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "2.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "4.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "8.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "16.1","Patus", 12)
-
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "1.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "2.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "4.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "8.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "16.1","Patus", 12)
-
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "1.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "2.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "4.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "8.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "16.1","Patus", 12)
-
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8.1","Patus", 12)
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16.1","Patus", 12)
-
+  dataset[nrow(dataset)+1,] <- c("FDTD", "1","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("FDTD", "2","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("FDTD", "8","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("FDTD", "4","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("FDTD", "16","Patus", 12,"Patus")
+  
+  dataset[nrow(dataset)+1,] <- c("HEAT", "1","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("HEAT", "2","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("HEAT", "4","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("HEAT", "8","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("HEAT", "16","Patus", 12,"Patus")
+  
+  dataset[nrow(dataset)+1,] <- c("WAVE", "1","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("WAVE", "2","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("WAVE", "4","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("WAVE", "8","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("WAVE", "16","Patus", 12,"Patus")
+  
+  dataset[nrow(dataset)+1,] <- c("POISSON", "1","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("POISSON", "2","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("POISSON", "4","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("POISSON", "8","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("POISSON", "16","Patus", 12,"Patus")
+  
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "1","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "2","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "4","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "8","Patus", 12,"Patus")
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "16","Patus", 12,"Patus")
+  
   # As the above set the Gflops as string, So we should change it back to numeric
   dataset$Gflops = as.numeric(dataset$Gflops)
-
-  ggplot(dataset[dataset$opttype!="Patus",], aes(OMP,Gflops, fill=opttype)) + 
-    geom_bar(stat="identity") +
+  
+  dataset_order <- dataset[dataset$opttype=="Patus",]
+  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="Origin",])
+  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+SIMD+Cflag",])
+  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+Tiling",])
+  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+Unrolling",])
+  levels(dataset$opttype) <- c("Patus","Origin","+SIMD+Cflag","+Tiling","+Unrolling")
+  # ggplot(dataset[dataset$opttype!"Patus",], aes(OMP,Gflops, fill=opttype)) + 
+  ggplot(dataset, aes(OMP,Gflops,fill=opttype)) + 
+    geom_bar(stat="identity",position=position_dodge(),width=0.7) +
     theme(legend.position="top",legend.title=element_blank()) + 
-    facet_grid(. ~ Applications)
+    #geom_bar(data=dataset[dataset$opttype=="Patus",])+
+    # stat="identity",width=0.3,position=position_dodge()) +
+    facet_grid(. ~ Applications  )
   ggsave(file="experiment/openmp_cpu.pdf", height=4,width=8)
 }
 
@@ -810,7 +819,7 @@ if(FALSE)
   ################WEAk Scaling########################
   
   dataset <- GetEachOptBestGflops()
-
+  
   dataset$Applications = factor(dataset$Applications)
   dataset$OMP = as.numeric(dataset$OMP)
   dataset$opttype = factor(dataset$opttype)
@@ -829,7 +838,7 @@ if(FALSE)
                    })
   
   library(ggplot2)
-
+  
   p <- ggplot(dataset,aes(x = OMP, y =Speedup,colour=factor(Applications) )) +
     geom_point() + geom_line() 
   
@@ -838,8 +847,8 @@ if(FALSE)
 }
 
 if (FALSE) {
-
- df <- NA 
+  
+  df <- NA 
   for(i in c(1,2,4,8,16))
   {
     j <- 0.1
@@ -858,15 +867,15 @@ if (FALSE) {
   library(grid)
   p <- ggplot(df,aes(x = omp, y =speedup,colour=factor(df$application) )) +
     geom_point() + geom_line() + theme_bw() + theme(axis.title.x = element_text(face="bold", size=12),
-          axis.title.y = element_text(face="bold", size=12, angle=90),
-          panel.grid.major = element_blank(), # switch off major gridlines
-          panel.grid.minor = element_blank(), # switch off minor gridlines
-          legend.position = c(0.2,0.8), # manually position the legend (numbers being from 0,0 at bottom left of whole plot to 1,1 at top right)
-          legend.title = element_blank(), # switch off the legend title
-          legend.text = element_text(size=12),
-          legend.key.size = unit(1.5, "lines"),
-          legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
- print(p)
+                                                    axis.title.y = element_text(face="bold", size=12, angle=90),
+                                                    panel.grid.major = element_blank(), # switch off major gridlines
+                                                    panel.grid.minor = element_blank(), # switch off minor gridlines
+                                                    legend.position = c(0.2,0.8), # manually position the legend (numbers being from 0,0 at bottom left of whole plot to 1,1 at top right)
+                                                    legend.title = element_blank(), # switch off the legend title
+                                                    legend.text = element_text(size=12),
+                                                    legend.key.size = unit(1.5, "lines"),
+                                                    legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
+  print(p)
 }
 #close(conn)
 
@@ -879,7 +888,7 @@ if (FALSE) {
 ######################## unUsed #####################################
 if (FALSE) {
   # Test the comparisonValues
-  benchmark_names <- c("JESMIN_MUPDATE1_3D", "JACOBI_PHYSIS_3D", "POSSION_3D_19P",
+  benchmark_names <- c("JESMIN_MUPDATE1_3D", "JACOBI_PHYSIS_3D", "POISSON_19P",
                        "HEAT_3D", "WAVE_FD_3D")
   cpu_specificIds <- c(12699, 12739, 12738, 12735, 12736)
   cuda_specificIds <- c(12745, 12747, 12743, 12746, 12744)
@@ -937,7 +946,7 @@ if (FALSE) {
 
 if (FALSE) {
   # Test the comparisonValues
-  benchmark_names <- c("JESMIN_MUPDATE1_3D", "JACOBI_PHYSIS_3D", "POSSION_3D_19P",
+  benchmark_names <- c("JESMIN_MUPDATE1_3D", "JACOBI_PHYSIS_3D", "POISSON_19P",
                        "HEAT_3D", "WAVE_FD_3D")
   cpu_specificIds <- c(12699, 12739, 12738, 12735, 12736)
   cuda_specificIds <- c(12745, 12747, 12743, 12746, 12744)
