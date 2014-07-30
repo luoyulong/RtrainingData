@@ -1,4 +1,5 @@
 library(RODBC)
+library(plyr)
 frame_files <- lapply(sys.frames(), function(x) x$ofile)
 frame_files <- Filter(Negate(is.null), frame_files)
 TOPDIR <- dirname(frame_files[[length(frame_files)]])
@@ -265,6 +266,86 @@ PlotSimilary_exp_prd<- function(pm,a,base=100)
   
   #browser()
 }
+
+
+GetEachOptBestGflops <- function() {
+  # Get the best Gflops of each opttype including SIMD, Origin, Tiling, Unrolling
+  # 
+  # Returns: 
+  #    The dataset contains the data. 
+  #    names(dataset) == c("Appliction","OMP", "opttype", "Gflops")
+
+  dataset <- data.frame(Applications = character(0), OMP=character(0), 
+                        opttype=character(0), Gflops=numeric(0), stringsAsFactors=F)
+  benchmarkinfo  <-  data.frame(id=12699,name="FDTD",stringsAsFactors=F)
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12735,"HEAT_3D")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12736,"wave_3D")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12738,"possion_3D")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12739,"jacobi_3D")
+  
+  for(i in 1:nrow(benchmarkinfo))
+  {
+    info <- benchmarkinfo[i,]
+    nt_str <- "OptConfig not like '%omp%'"
+    nt_str <- append(nt_str,"OptConfig like '%omp@2%'")
+    nt_str <- append(nt_str,"OptConfig like '%omp@4%'")
+    nt_str <- append(nt_str,"OptConfig like '%omp@8%'")
+    nt_str <- append(nt_str,"OptConfig like '%omp@16%'")
+    n <- 1
+    for (nt in nt_str)
+    { 
+      #browser()
+      #origin
+      opt_str <- "OptType like '%Origin%'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1)
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"Origin", tmp$Gflops) #tiling best
+      #simd+avx
+      opt_str <- "OptType like '%DoSIMD-cflag%'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1) 
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"SIMD", tmp$Gflops) #tiling best
+      
+      #tiling
+      opt_str <- "OptType like '%Tiling%' and OptType not like '%Unrolling%'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1)
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"Tiling", tmp$Gflops) #tiling best
+      #unrolling
+      opt_str <- "OptType like '%Unrolling%'"
+      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
+      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
+      if(nrow(tmp)==1)
+        dataset[nrow(dataset)+1,] <- c(info$name, n,"Unrolling", tmp$Gflops) #tiling best 
+      
+      
+      n <- n*2 
+    }
+  }
+  print(dataset)
+
+  #best performance achieve finished 
+  return(dataset)
+
+}
+
+
+theme_my <- function() {
+ require(grid)
+ theme_bw() + theme(axis.title.x = element_text(face="bold", size=12),
+          axis.title.y = element_text(face="bold", size=12, angle=90),
+          panel.grid.major = element_blank(), # switch off major gridlines
+          panel.grid.minor = element_blank(), # switch off minor gridlines
+          legend.position = c(0.2,0.8), # manually position the legend (numbers being from 0,0 at bottom left ofwhole plot to 1,1 at top right)
+          legend.title = element_blank(), # switch off the legend title
+          legend.text = element_text(size=12),
+          legend.key.size = unit(1.5, "lines"),
+          legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
+}
+
 
 ###################################################################################################
 #####  
@@ -587,7 +668,7 @@ if (FALSE) {
   dataset <- cbind(dataset, c(32,28,33))
   dataset <- cbind(dataset, c(10,45,93))
   dataset <- cbind(dataset, c(23,45,93))
-  dataset <- cbind(dataset, c(11,10,15))
+  dunnintaset <- cbind(dataset, c(11,10,15))
   dataset <- cbind(dataset, c(11,11,16))
   
   colnames(dataset) <- benchmark_names
@@ -639,192 +720,87 @@ if (FALSE) {
 
 
 if (TRUE) {
+
+  ####################################################################
+  ##           Plot the contribution of each opttype
+  ####################################################################
   #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
-  dataset <- data.frame(Applications = character(0), OMP=character(0), 
-                        opttype=character(0), Gflops=numeric(0), stringsAsFactors=F)
-  benchmarkinfo  <-  data.frame(id=12699,name="FDTD",stringsAsFactors=F)
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12735,"HEAT_3D")
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12736,"wave_3D")
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12738,"possion_3D")
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12739,"jacobi_3D")
-  
-  for(i in 1:nrow(benchmarkinfo))
-  {
-    info <- benchmarkinfo[i,]
-    nt_str <- "OptConfig not like '%omp%'"
-    nt_str <- append(nt_str,"OptConfig like '%omp@2'")
-    nt_str <- append(nt_str,"OptConfig like '%omp@4'")
-    nt_str <- append(nt_str,"OptConfig like '%omp@8'")
-    nt_str <- append(nt_str,"OptConfig like '%omp@16'")
-    n <- 1
-    for (nt in nt_str)
-    { 
-      #origin
-      opt_str <- "OptType='origin'"
-      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
-      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
-      if(nrow(tmp)==1)
-        dataset[nrow(dataset)+1,] <- c(info$name, n,"Origin", tmp$Gflops) #tiling best
-      #simd+avx
-      opt_str <- "OptType='simd-avx'"
-      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
-      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
-      if(nrow(tmp)==1)
-        dataset[nrow(dataset)+1,] <- c(info$name, n,"SIMD", tmp$Gflops) #tiling best
-      #tiling
-      opt_str <- "OptType like '%Tiling%'"
-      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
-      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
-      if(nrow(tmp)==1)
-        dataset[nrow(dataset)+1,] <- c(info$name, n,"Tiling", tmp$Gflops) #tiling best
-      #unrolling
-      opt_str <- "OptType like '%Unrolling-Tiling%'"
-      condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
-      tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
-      if(nrow(tmp)==1)
-        dataset[nrow(dataset)+1,] <- c(info$name, n,"Unrolling", tmp$Gflops) #tiling best 
-      n <- n*2 
-    }
-  }
-  #best performance achieve finished 
-  
-  
-  performanceDB.getVariants
-  dataset[nrow(dataset)+1,] <- c("FDTD", "1","origin", 12) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "2","origin", 14) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "4","origin", 19) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "8","origin", 23) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "16","origin", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("FDTD", "1","SIMD", 12) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "2","SIMD", 14) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "4","SIMD", 19) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "8","SIMD", 23) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "16","SIMD", 27) 
-  
-  
-  dataset[nrow(dataset)+1,] <- c("FDTD", "1","Tiling", 12) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "2","Tiling", 14) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "4","Tiling", 19) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "8","Tiling", 23) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "16","Tiling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("FDTD", "1","Unrolling", 12) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "2","Unrolling", 14) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "4","Unrolling", 19) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "8","Unrolling", 23) 
-  dataset[nrow(dataset)+1,] <- c("FDTD", "16","Unrolling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "1","origin", 12) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "2","origin", 14) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "4","origin", 19) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "8","origin", 23) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "16","origin", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "1","SIMD", 12) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "2","SIMD", 14) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "4","SIMD", 19) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "8","SIMD", 23) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "16","SIMD", 27) 
-  
-  
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "1","Tiling", 12) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "2","Tiling", 14) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "4","Tiling", 19) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "8","Tiling", 23) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "16","Tiling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "1","Unrolling", 12) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "2","Unrolling", 14) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "4","Unrolling", 19) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "8","Unrolling", 23) 
-  dataset[nrow(dataset)+1,] <- c("heat_3D", "16","Unrolling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","origin", 12) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","origin", 14) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","origin", 19) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","origin", 23) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","origin", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","SIMD", 12) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","SIMD", 14) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","SIMD", 19) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","SIMD", 23) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","SIMD", 27) 
-  
-  
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","Tiling", 12) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","Tiling", 14) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","Tiling", 19) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","Tiling", 23) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","Tiling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1","Unrolling", 12) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2","Unrolling", 14) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4","Unrolling", 19) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8","Unrolling", 23) 
-  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16","Unrolling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "1","origin", 12) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "2","origin", 14) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "4","origin", 19) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "8","origin", 23) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "16","origin", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "1","SIMD", 12) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "2","SIMD", 14) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "4","SIMD", 19) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "8","SIMD", 23) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "16","SIMD", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "1","Tiling", 12) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "2","Tiling", 14) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "4","Tiling", 19) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "8","Tiling", 23) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "16","Tiling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "1","Unrolling", 12) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "2","Unrolling", 14) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "4","Unrolling", 19) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "8","Unrolling", 23) 
-  dataset[nrow(dataset)+1,] <- c("possion_3D", "16","Unrolling", 27) 
-  
-  
-  
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "1","origin", 12) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "2","origin", 14) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "4","origin", 19) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "8","origin", 23) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "16","origin", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "1","SIMD", 12) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "2","SIMD", 14) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "4","SIMD", 19) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "8","SIMD", 23) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "16","SIMD", 27) 
-  
-  
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "1","Tiling", 12) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "2","Tiling", 14) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "4","Tiling", 19) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "8","Tiling", 23) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "16","Tiling", 27) 
-  
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "1","Unrolling", 12) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "2","Unrolling", 14) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "4","Unrolling", 19) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "8","Unrolling", 23) 
-  dataset[nrow(dataset)+1,] <- c("wave_3D", "16","Unrolling", 27) 
+ 
+  dataset <- GetEachOptBestGflops()
+ 
   
   library(ggplot2)
   
   dataset$Applications = factor(dataset$Applications)
-  dataset$OMP = factor(dataset$OMP,levels=c("1","2","4","8","16"))
+  dataset$OMP = factor(dataset$OMP,levels=c("1","1.1","2","2.1","4","4.1","8","8.1","16","16.1"))
   dataset$opttype = factor(dataset$opttype)
   dataset$Gflops = as.numeric(dataset$Gflops)
-  
-  ggplot(dataset, aes(OMP,Gflops, fill=opttype)) + 
-    geom_bar(stat="identity",width=0.6) +
+
+  # Compute the contribution of each opttype
+  library("plyr")
+  dataset <- ddply(dataset, c("Applications", "OMP"), 
+                              function(x){
+                                stopifnot(nrow(x) <= 4)  # Origin ,SIMD, Tiling, Unrolling
+                                GetGflops <- function(opttype) {
+                                  
+                                  gflops <- x[x$opttype==opttype,]$Gflops
+                                  if(length(gflops) == 0) {
+                                    gflops <- 0
+                                  }
+                                  return(gflops)
+                                }
+                                tmp_origin <- GetGflops("Origin")
+                                tmp_simd <- GetGflops("SIMD")
+                                tmp_tiling <- GetGflops("Tiling")
+                                tmp_unrolling <- GetGflops("Unrolling")
+
+                                origin <- tmp_origin
+                                simd <- ifelse(tmp_simd>tmp_origin, tmp_simd-tmp_origin, 0)
+                                tiling <- ifelse(tmp_tiling>tmp_simd,tmp_tiling-tmp_simd, 0)
+                                unrolling <- ifelse(tmp_unrolling>tmp_tiling, tmp_unrolling-tmp_tiling, 0)
+                                
+
+                                data.frame(opttype=c("Origin","+SIMD+Cflag","+Tiling","+Unrolling"),
+                                           Gflops=c(origin, simd, tiling, unrolling))
+                              })
+
+  # Add patus data
+  levels(dataset$opttype) <- c(levels(dataset$opttype),"Patus")
+  dataset[nrow(dataset)+1,] <- c("FDTD", "1.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "2.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "8.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "4.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "16.1","Patus", 12)
+
+  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "1.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "2.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "4.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "8.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("HEAT_3D", "16.1","Patus", 12)
+
+  dataset[nrow(dataset)+1,] <- c("wave_3D", "1.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("wave_3D", "2.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("wave_3D", "4.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("wave_3D", "8.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("wave_3D", "16.1","Patus", 12)
+
+  dataset[nrow(dataset)+1,] <- c("possion_3D", "1.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("possion_3D", "2.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("possion_3D", "4.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("possion_3D", "8.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("possion_3D", "16.1","Patus", 12)
+
+  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "1.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "2.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "4.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "8.1","Patus", 12)
+  dataset[nrow(dataset)+1,] <- c("jacobi_3D", "16.1","Patus", 12)
+
+  # As the above set the Gflops as string, So we should change it back to numeric
+  dataset$Gflops = as.numeric(dataset$Gflops)
+
+  ggplot(dataset[dataset$opttype!="Patus",], aes(OMP,Gflops, fill=opttype)) + 
+    geom_bar(stat="identity") +
     theme(legend.position="top",legend.title=element_blank()) + 
     facet_grid(. ~ Applications)
   ggsave(file="experiment/openmp_cpu.pdf", height=4,width=8)
@@ -834,7 +810,38 @@ if (TRUE) {
 if(FALSE)
 {
   ################WEAk Scaling########################
-  df <- NA 
+  
+  dataset <- GetEachOptBestGflops()
+
+  dataset$Applications = factor(dataset$Applications)
+  dataset$OMP = as.numeric(dataset$OMP)
+  dataset$opttype = factor(dataset$opttype)
+  dataset$Gflops = as.numeric(dataset$Gflops)
+  
+  dataset <- ddply(dataset,c("Applications","OMP"),
+                   function(x){
+                     max_gflops <- max(x$Gflops)
+                     origin_gflops  <- x[x$opttype=="Origin",]$Gflops
+                     if (length(origin_gflops)==0) {
+                       # stop()  # Current just set it to be 1
+                       origin_gflops = 1
+                     }
+                     speedup <- max_gflops/origin_gflops
+                     data.frame(Speedup=speedup)
+                   })
+  
+  library(ggplot2)
+
+  p <- ggplot(dataset,aes(x = OMP, y =Speedup,colour=factor(Applications) )) +
+    geom_point() + geom_line() 
+  
+  ggsave(file="experiment/speedup.pdf",width=5,height=3) 
+  
+}
+
+if (FALSE) {
+
+ df <- NA 
   for(i in c(1,2,4,8,16))
   {
     j <- 0.1
@@ -850,13 +857,19 @@ if(FALSE)
   }
   
   library(ggplot2)
+  library(grid)
   p <- ggplot(df,aes(x = omp, y =speedup,colour=factor(df$application) )) +
-    geom_point() + geom_line() 
-  
-  print(p)
-  
+    geom_point() + geom_line() + theme_bw() + theme(axis.title.x = element_text(face="bold", size=12),
+          axis.title.y = element_text(face="bold", size=12, angle=90),
+          panel.grid.major = element_blank(), # switch off major gridlines
+          panel.grid.minor = element_blank(), # switch off minor gridlines
+          legend.position = c(0.2,0.8), # manually position the legend (numbers being from 0,0 at bottom left of whole plot to 1,1 at top right)
+          legend.title = element_blank(), # switch off the legend title
+          legend.text = element_text(size=12),
+          legend.key.size = unit(1.5, "lines"),
+          legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
+ print(p)
 }
-
 #close(conn)
 
 
