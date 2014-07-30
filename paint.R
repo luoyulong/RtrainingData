@@ -428,6 +428,7 @@ if (FALSE) {
     return(data.frame(item))
   }
   
+ 
   
   
   ######## CUDA #########################3
@@ -725,10 +726,7 @@ if (TRUE) {
   ##           Plot the contribution of each opttype
   ####################################################################
   #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
- 
-  dataset <- GetEachOptBestGflops()
- 
-  
+   
   library(ggplot2)
   
   dataset$Applications = factor(dataset$Applications)
