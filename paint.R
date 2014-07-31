@@ -281,7 +281,7 @@ GetEachOptBestGflops <- function() {
   benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12735,"HEAT")
   benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12736,"WAVE")
   benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12738,"POISSON")
-  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12739,"JACOBI")
+  benchmarkinfo[nrow(benchmarkinfo)+1,] <- c(12739,"HIMENO")
   
   for(i in 1:nrow(benchmarkinfo))
   {
@@ -374,7 +374,7 @@ similar_discovery <- function()
 
 PlotTuningCompare <- function() {
   ########## CompareTuning ###############
-  function_name  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
+  function_name  <-  c("FDTD", "HEAT", "HIMENO", "POISSON", "WAVE")
   cpu_targetId  <-  c(12699, 12735, 12739, 12738, 12736)
   cpu_predictId  <- c(12792, 12792, 12787, 12786, 12793)
   
@@ -419,7 +419,7 @@ PlotEachOptimizationGPU <- function() {
   #############################################################################
   
   # Test the comparisonValues
-  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
+  benchmark_names  <-  c("FDTD", "HEAT", "HIMENO", "POISSON", "WAVE")
   cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
   
   get_item <- function(specificId, programmingModel) {
@@ -491,7 +491,7 @@ PlotCodeAmount <- function() {
   ##########################################################
   
   
-  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
+  benchmark_names  <-  c("FDTD", "HEAT", "HIMENO", "POISSON", "WAVE")
   cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
   cuda_specificIds <- c(12745, 12746,12747, 12743,  12744)
   
@@ -575,7 +575,7 @@ getAverageSpeedup<- function()
   cpuave<- ave(bestperformance$speedup)[1]
   
   ######## CUDA #########################3
-  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
+  benchmark_names  <-  c("FDTD", "HEAT", "HIMENO", "POISSON", "WAVE")
   cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
   
   gpudata <- NA
@@ -679,11 +679,11 @@ PlotEachOrBestOptimizationCPU <- function(flag=TRUE) {
   dataset[nrow(dataset)+1,] <- c("POISSON", "8","Patus", 26.822708)
   dataset[nrow(dataset)+1,] <- c("POISSON", "16","Patus", 26.729250)
 
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "1","Patus", 2.193176)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "2","Patus", 4.853085)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "4","Patus", 8.315078)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "8","Patus", 10.576766)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "16","Patus", 11.036797)
+  dataset[nrow(dataset)+1,] <- c("HIMENO", "1","Patus", 2.193176)
+  dataset[nrow(dataset)+1,] <- c("HIMENO", "2","Patus", 4.853085)
+  dataset[nrow(dataset)+1,] <- c("HIMENO", "4","Patus", 8.315078)
+  dataset[nrow(dataset)+1,] <- c("HIMENO", "8","Patus", 10.576766)
+  dataset[nrow(dataset)+1,] <- c("HIMENO", "16","Patus", 11.036797)
 
   dataset$Gflops <- as.numeric(dataset$Gflops)
  
