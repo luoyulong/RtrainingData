@@ -403,7 +403,7 @@ if (FALSE) {
   #############################################################################
   
   # Test the comparisonValues
-  benchmark_names  <-  c("FDTD", "heat_3D", "JACOBI", "POISSON", "WAVE")
+  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
   cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
   
   get_item <- function(specificId, programmingModel) {
@@ -459,6 +459,7 @@ if (FALSE) {
           cex.main=2,
           cex.lab=1.5,
           cex.axis=1.5,
+          
           legend=rownames(data),
           args.legend=list(cex=1.0,yjust=0.8),
           beside=TRUE)
@@ -659,7 +660,7 @@ if (FALSE) {
   ##########################################################
   
   
-  benchmark_names  <-  c("FDTD", "heat_3D", "JACOBI", "POISSON", "WAVE")
+  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
   cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
   cuda_specificIds <- c(12745, 12746,12747, 12743,  12744)
   
@@ -669,7 +670,7 @@ if (FALSE) {
   dataset <- cbind(dataset, c(32,28,33))
   dataset <- cbind(dataset, c(10,45,93))
   dataset <- cbind(dataset, c(23,45,93))
-  dunnintaset <- cbind(dataset, c(11,10,15))
+  dataset <- cbind(dataset, c(11,10,15))
   dataset <- cbind(dataset, c(11,11,16))
   
   colnames(dataset) <- benchmark_names
@@ -677,14 +678,19 @@ if (FALSE) {
   opar <- par(no.readonly=TRUE)
   #par(cex.lab=1.2)
   #par(cex.main=10)
-  pdf("code_amount_cpu.pdf",width=7,height=7)
+  pdf("code_amount_cpu.pdf",width=12,height=8.5)
   barplot(as.matrix(dataset),
-          main="The Amount Of Code",
-          ylab="Applications", xlab="Line Of Code",
-          xlim=c(0,100),
+          main="The Size Of Code",
+          xlab="Applications", ylab="Line Of Code",
+          cex.main=3,
+          xlim=c(0,20),
+          #  ylim=c(0,120),
           angle=45,
-          density=20,
-          horiz = TRUE,
+          density=100,
+          cex.names=2,
+          cex.lab=1.5,
+          cex.axis=1.5,
+          #horiz = TRUE,
           legend.text=rownames(dataset),
           args.legend = list(x = "topright",cex=1.5),
           beside=TRUE)
@@ -699,13 +705,19 @@ if (FALSE) {
   dataset <- cbind(dataset, c(11,52,65))
   
   colnames(dataset) <- benchmark_names
-  pdf("code_amount_cuda.pdf")
+  pdf("code_amount_cuda.pdf",width=12,height=8.5)
   barplot(as.matrix(dataset),
-          main="The Amount Of Code",
-          ylab="Applications", xlab="Line Of Code",
-          xlim=c(0,100),
+          main="The Size Of Code",
+          cex.main=3,
+          xlab="Applications", ylab="Line Of Code",
+          xlim=c(0,20),
+          #ylim=c(0,190),
+          angle=45,
+          density=100,
           cex.names=2,
-          horiz = TRUE,
+          cex.lab=1.5,
+          cex.axis=1.5,
+          #horiz = TRUE,
           legend.text=rownames(dataset),
           args.legend = list(x = "topright",cex=1.5),
           beside=TRUE)
@@ -715,6 +727,54 @@ if (FALSE) {
   setwd("..")
   
 }
+
+getAverageSpeedup<- function()
+{
+  dataset <- GetEachOptBestGflops()
+  dataset$Gflops<- as.numeric(dataset$Gflops)
+  bestperformance <- ddply(dataset,c("Applications","OMP"),
+                           function(x){
+                             max_gflops <-max(x$Gflops)
+                             origin_gflops<-x[x$opttype=="Origin",]$Gflops
+                             data.frame(origingflops=origin_gflops,maxGflops=max_gflops,Applications=x$Applications[1],OMP=as.numeric(as.character(x$OMP[1])))
+                           })
+  
+  
+  bestperformance$speedup <- bestperformance$maxGflops/bestperformance$origingflops
+  cpuave<- ave(bestperformance$speedup)[1]
+  
+  
+  
+  
+  ######## CUDA #########################3
+  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
+  cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
+  
+  gpudata <- NA
+  for (specificId in cuda_specificIds) {
+    origin_flops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
+    max_flops <- performanceDB.GetVariantInfo(specificId, "", 1)$Gflops
+    specificId_data <- data.frame(maxflops=max_flops,originflops=origin_flops) 
+    if (is.na(gpudata)&&length(gpudata)==1) {
+      gpudata <- specificId_data
+    } else {
+      gpudata <- rbind(gpudata, specificId_data)
+    }
+  } 
+  gpudata$speedup <-gpudata$maxflops/gpudata$originflops
+  gpuave<- ave(gpudata$speedup)[1]
+  
+  
+  
+  
+  
+  
+  
+  
+  return data.frame(cpu=cpuave,gpu)
+}
+
+
 
 
 
@@ -727,6 +787,7 @@ if (TRUE) {
   ####################################################################
   #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
   dataset <- GetEachOptBestGflops()
+  
   library(ggplot2)
   
   dataset$Applications = factor(dataset$Applications)
@@ -803,12 +864,9 @@ if (TRUE) {
   dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+Tiling",])
   dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+Unrolling",])
   levels(dataset$opttype) <- c("Patus","Origin","+SIMD+Cflag","+Tiling","+Unrolling")
-  # ggplot(dataset[dataset$opttype!"Patus",], aes(OMP,Gflops, fill=opttype)) + 
   ggplot(dataset, aes(OMP,Gflops,fill=opttype)) + 
     geom_bar(stat="identity",position=position_dodge(),width=0.7) +
     theme(legend.position="top",legend.title=element_blank()) + 
-    #geom_bar(data=dataset[dataset$opttype=="Patus",])+
-    # stat="identity",width=0.3,position=position_dodge()) +
     facet_grid(. ~ Applications  )
   ggsave(file="experiment/openmp_cpu.pdf", height=4,width=8)
 }
@@ -819,36 +877,39 @@ if(FALSE)
   ################WEAk Scaling########################
   
   dataset <- GetEachOptBestGflops()
+  dataset$Gflops <- as.numeric(dataset$Gflops)
   
-  dataset$Applications = factor(dataset$Applications)
-  dataset$OMP = as.numeric(dataset$OMP)
-  dataset$opttype = factor(dataset$opttype)
-  dataset$Gflops = as.numeric(dataset$Gflops)
+  dataset2 <- ddply(dataset,c("Applications","OMP"),
+                    function(x){
+                      max_gflops <- max(x$Gflops)
+                      data.frame(maxGflops=max_gflops,Applications=x$Applications[1],OMP=as.numeric(as.character(x$OMP[1])))
+                    })
   
-  dataset <- ddply(dataset,c("Applications","OMP"),
-                   function(x){
-                     max_gflops <- max(x$Gflops)
-                     origin_gflops  <- x[x$opttype=="Origin",]$Gflops
-                     if (length(origin_gflops)==0) {
-                       # stop()  # Current just set it to be 1
-                       origin_gflops = 1
-                     }
-                     speedup <- max_gflops/origin_gflops
-                     data.frame(Speedup=speedup)
-                   })
+  dataset2$Applications = factor(dataset2$Applications)
+  dataset2$Gflops = as.numeric(dataset2$maxGflops)
+  dataset2 <- ddply(dataset2,c("Applications"),
+                    function(x){
+                      tmp <- x$maxGflops/ x[x$OMP==1,]$maxGflops
+                      data.frame(Speedup=tmp,Applications=x$Applications[1],OMP=x$OMP)
+                    })
+  
+  
+  
+  
   
   library(ggplot2)
   
-  p <- ggplot(dataset,aes(x = OMP, y =Speedup,colour=factor(Applications) )) +
-    geom_point() + geom_line() 
-  
-  ggsave(file="experiment/speedup.pdf",width=5,height=3) 
+  p <- ggplot(dataset2,aes(x = OMP, y =Speedup,colour=factor(Applications) )) + 
+    geom_point(size=4) + geom_line(size=1.5) + 
+    theme(legend.position="top",legend.title=element_blank(),axis.text=element_text(size=20),
+          axis.title=element_text(size=20),legend.text=element_text(size=20),panel.background=element_rect(fill="white"))+labs(x = "Thread Number")
+  ggsave(file="speedup.pdf",width=10,height=6) 
   
 }
 
 if (FALSE) {
   
-  df <- NA 
+  df <- GetEachOptBestGflops()
   for(i in c(1,2,4,8,16))
   {
     j <- 0.1
@@ -876,6 +937,7 @@ if (FALSE) {
                                                     legend.key.size = unit(1.5, "lines"),
                                                     legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
   print(p)
+  
 }
 #close(conn)
 
