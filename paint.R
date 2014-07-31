@@ -27,8 +27,8 @@ GetRGB <- function(col)
 
 CompareTuning <- function(id_target,id_predict,opttype,per, function_name)
 {
-  variants <- performanceDB.GetVariantInfo_noOrder(id_target,opttype)
-  variants2 <- performanceDB.GetVariantInfo(id_predict,opttype)
+  variants <- performanceDB.GetVariantInfo_noOrder(id_target,opttype,omp=FALSE)
+  variants2 <- performanceDB.GetVariantInfo(id_predict,opttype,omp=FALSE)
   for(i in 1:nrow(variants2))
   {
     prdconfig <- variants2[i,]$OptConfig
@@ -65,7 +65,8 @@ CompareTuning <- function(id_target,id_predict,opttype,per, function_name)
   plot(tuningprocess$step,tuningprocess$max,
        ylim=c(min(tuningprocess$max),max(tuningprocess$max)),
        xlim=c(1,max(tuningprocess$step)),
-       col="blue",lwd=4,cex.main=3,cex.lab=2,
+       col="blue",lwd=4,cex.main=3,cex.lab=2.6,
+       cex.axis=2.4,
        pch=19,type="l",
        main=function_name,
        xlab="Tuning Steps",ylab="Best Performance (Gflops)")
@@ -78,7 +79,7 @@ CompareTuning <- function(id_target,id_predict,opttype,per, function_name)
     {
       print(sprintf("achieve in %d,%f \n",i,tuningprocess[i,]$max))
       lines(i,tuningprocess[i,]$max, type="h", lwd=2, lty=2,col="blue");
-      text(i,min(tuningprocess$max), as.character(i),cex=2,pos=4,col="blue")
+      text(i,min(tuningprocess$max), as.character(i),cex=2.6,pos=4,col="blue")
       
       break;
     }
@@ -94,7 +95,7 @@ CompareTuning <- function(id_target,id_predict,opttype,per, function_name)
     {
       print(sprintf("achieve in %d,%f \n",i,prdprocess[i,]$max))
       lines(i,prdprocess[i,]$max, type="h", lwd=2, lty=2,col="red");
-      text(i,min(tuningprocess$max), as.character(i),cex=2,pos=2,col="red")
+      text(i,min(tuningprocess$max), as.character(i),cex=2.6,pos=2,col="red")
       
       break;
     }
@@ -109,7 +110,7 @@ CompareTuning <- function(id_target,id_predict,opttype,per, function_name)
 NOS_Similarty <- function(id_a,id_b,opttype)
 {
   
-  FN <- nrow(performanceDB.GetVariantInfo(id_a,opttype))
+  FN <- nrow(performanceDB.GetVariantInfo(id_a,opttype,omp=FALSE))
   r <- data.frame(x=FN,y=FN)
   for(i in as.integer(FN/100):1)
   {
@@ -189,14 +190,14 @@ comparisonValues <- function(specificsId, programmingModel,
   #   dataframe contains origin, CUDABlocking, Unrolling values.
   #
   
-  origin_gflops <- performanceDB.GetVariantInfo(specificsId, "origin", 1)$Gflops
-  optimized_gflops_configs <- performanceDB.GetVariantInfo(specificsId, "")
+  origin_gflops <- performanceDB.GetVariantInfo(specificsId, "origin", 1,omp=FALSE)$Gflops
+  optimized_gflops_configs <- performanceDB.GetVariantInfo(specificsId, "",omp=FALSE)
   candicate_instance_ids <- searchMostsimilarByModel(specificsId, programmingModel)[,1][1: candicate_instance_cnt]
   
   get_gest_gflops <- function(optType) {
     best_gflops <- 0;
     for( candicate_id in candicate_instance_ids) {      
-      configs <- performanceDB.GetVariantInfo(candicate_id, optType)[1:candicate_config_in_instance_cnt]$OptConfig
+      configs <- performanceDB.GetVariantInfo(candicate_id, optType,omp=FALSE)[1:candicate_config_in_instance_cnt]$OptConfig
       
       tmp_best_gflops <- optimized_gflops_configs[which(optimized_gflops_configs$OptConfig %in% configs),][1,1]
       if (best_gflops < tmp_best_gflops) {
@@ -384,7 +385,7 @@ PlotTuningCompare <- function() {
     dir.create("experiment")
   }
   setwd("experiment")
-  pdf("experiment_cpu.pdf",width=35,height=7) 
+  pdf("experiment_cpu.pdf",width=35,height=5) 
   par(mfrow=c(1,5))
   par(mar=c(4,6,4,2) + 0.1)
   for (ind in 1:length(function_name)) {
@@ -395,8 +396,9 @@ PlotTuningCompare <- function() {
   dev.off()
   
   
-  pdf("experiment_cuda.pdf",width=35,height=7) 
+  pdf("experiment_cuda.pdf",width=35,height=5) 
   par(mfrow=c(1,5))
+  par(mar=c(4,6,4,2) + 0.1)
   cuda_targetId  <-  c(12745, 12746, 12747, 12743, 12744)
   cuda_predictId  <- c(12760, 12755, 12746, 12753, 12768)
   
@@ -435,10 +437,10 @@ PlotEachOptimizationGPU <- function() {
     #
     
     item  <- c()
-    origin_gflops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
+    origin_gflops <- performanceDB.GetVariantInfo(specificId, "origin", 1,omp=FALSE)$Gflops
     item["origin"]  <- origin_gflops
     
-    best_gflops <- performanceDB.GetVariantInfo(specificId, "",1)$Gflops
+    best_gflops <- performanceDB.GetVariantInfo(specificId, "",1, omp=FALSE)$Gflops
     item["HPS"] <- best_gflops
     
     return(data.frame(item))
@@ -580,8 +582,8 @@ getAverageSpeedup<- function()
   
   gpudata <- NA
   for (specificId in cuda_specificIds) {
-    origin_flops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
-    max_flops <- performanceDB.GetVariantInfo(specificId, "", 1)$Gflops
+    origin_flops <- performanceDB.GetVariantInfo(specificId, "origin", 1,omp=FALSE)$Gflops
+    max_flops <- performanceDB.GetVariantInfo(specificId, "", 1, omp=FALSE)$Gflops
     specificId_data <- data.frame(maxflops=max_flops,originflops=origin_flops) 
     if (is.na(gpudata)&&length(gpudata)==1) {
       gpudata <- specificId_data
@@ -758,7 +760,7 @@ theme_my <- function() {
 #####
 ###################################################################################################
 
-if (TRUE) {
+if (FALSE) {
   PlotEachOptimizationGPU()
   PlotEachOrBestOptimizationCPU()
   PlotCodeAmount()

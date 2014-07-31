@@ -513,12 +513,19 @@ performanceDB.rightmodel <- function(opttype) {
   }
   return(rightmodel)
 } 
-performanceDB.GetVariantInfo <- function(sid,opttype="",number=-1){
+
+performanceDB.GetVariantInfo <- function(sid,opttype="",number=-1, omp=TRUE){
   conn <- odbcConnect("myhps","hps","hps")
-  if(opttype=="")
-    selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d order by Gflops desc;',sid)
-  else
+  if(opttype=="") {
+    if (omp) {
+      selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d order by Gflops desc;',sid)
+    } else {
+      selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d and instr(OptType,"omp")=0 order by Gflops desc;',sid)
+    }
+  }
+  else {
     selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d and OptType="%s" order by Gflops desc;',sid,opttype)
+  }
   sqlQuery(conn,"use hps")
   result <- sqlQuery(conn,selcmd,stringsAsFactors = FALSE)
   close(conn)
@@ -529,12 +536,18 @@ performanceDB.GetVariantInfo <- function(sid,opttype="",number=-1){
     return (result[1:number,])
 }
 
-performanceDB.GetVariantInfo_noOrder <- function(sid,opttype="",number=-1){
+performanceDB.GetVariantInfo_noOrder <- function(sid,opttype="",number=-1,omp=TRUE){
   conn <- odbcConnect("myhps","hps","hps")
-  if(opttype=="")
-    selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d;',sid)
-  else
+  if(opttype=="") {
+    if (omp) {
+      selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d;',sid)
+    } else {
+      selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d and instr(OptType,"omp")=0;',sid)
+    }
+  }
+  else {
     selcmd <- sprintf('select Gflops, OptConfig from optVariant where SpecificsId=%d and OptType="%s" ;',sid,opttype)
+  }
   sqlQuery(conn,"use hps")
   result <- sqlQuery(conn,selcmd,stringsAsFactors = FALSE)
   close(conn)
