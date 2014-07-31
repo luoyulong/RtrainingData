@@ -335,15 +335,13 @@ GetEachOptBestGflops <- function() {
 
 theme_my <- function() {
   require(grid)
-  theme_bw() + theme(axis.title.x = element_text(face="bold", size=12),
+  theme_grey() + theme(axis.title.x = element_text(face="bold", size=12),
                      axis.title.y = element_text(face="bold", size=12, angle=90),
                      panel.grid.major = element_blank(), # switch off major gridlines
                      panel.grid.minor = element_blank(), # switch off minor gridlines
-                     legend.position = c(0.2,0.8), # manually position the legend (numbers being from 0,0 at bottom left ofwhole plot to 1,1 at top right)
-                     legend.title = element_blank(), # switch off the legend title
-                     legend.text = element_text(size=12),
-                     legend.key.size = unit(1.5, "lines"),
-                     legend.key = element_blank()) # switch off the rectangle around symbols in the legend) 
+                     legend.position="top",
+                     legend.title=element_blank()
+                     )
 }
 
 
@@ -730,11 +728,11 @@ if (TRUE) {
   library(ggplot2)
   
   dataset$Applications = factor(dataset$Applications)
-  dataset$OMP = factor(dataset$OMP,levels=c("1","1.1","2","2.1","4","4.1","8","8.1","16","16.1"))
+  dataset$OMP = factor(dataset$OMP,levels=c("1","2","4","8","16"))
   dataset$opttype = factor(dataset$opttype)
   dataset$Gflops = as.numeric(dataset$Gflops)
   
-  # Compute the contribution of each opttype
+  # If the later Optimization gflops less then the before, use the before
   library("plyr")
   dataset <- ddply(dataset, c("Applications", "OMP"), 
                    function(x){
@@ -748,69 +746,67 @@ if (TRUE) {
                        return(gflops)
                      }
                      tmp_origin <- GetGflops("Origin")
-                     tmp_simd <- GetGflops("SIMD")
-                     tmp_tiling <- GetGflops("Tiling")
-                     tmp_unrolling <- GetGflops("Unrolling")
+                     tmp_simd <- GetGflops("+SIMD+Cflag")
+                     tmp_tiling <- GetGflops("+Tiling")
+                     tmp_unrolling <- GetGflops("+Unrolling")
                      
                      origin <- tmp_origin
-                     simd <- ifelse(tmp_simd>tmp_origin, tmp_simd-tmp_origin, 0)
-                     tiling <- ifelse(tmp_tiling>tmp_simd,tmp_tiling-tmp_simd, 0)
-                     unrolling <- ifelse(tmp_unrolling>tmp_tiling, tmp_unrolling-tmp_tiling, 0)
-                     
+                     simd <- max(tmp_simd,tmp_origin)
+                     tiling <- max(tmp_tiling,simd)
+                     unrolling <- max(tmp_unrolling,tiling)
                      
                      data.frame(opttype=c("Origin","+SIMD+Cflag","+Tiling","+Unrolling"),
                                 Gflops=c(origin, simd, tiling, unrolling))
                    })
-  dataset$dsl="hps"
-  # Add patus data
-  levels(dataset$opttype) <- c(levels(dataset$opttype),"Patus")
-  dataset[nrow(dataset)+1,] <- c("FDTD", "1","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("FDTD", "2","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("FDTD", "8","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("FDTD", "4","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("FDTD", "16","Patus", 12,"Patus")
-  
-  dataset[nrow(dataset)+1,] <- c("HEAT", "1","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("HEAT", "2","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("HEAT", "4","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("HEAT", "8","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("HEAT", "16","Patus", 12,"Patus")
-  
-  dataset[nrow(dataset)+1,] <- c("WAVE", "1","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("WAVE", "2","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("WAVE", "4","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("WAVE", "8","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("WAVE", "16","Patus", 12,"Patus")
-  
-  dataset[nrow(dataset)+1,] <- c("POISSON", "1","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("POISSON", "2","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("POISSON", "4","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("POISSON", "8","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("POISSON", "16","Patus", 12,"Patus")
-  
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "1","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "2","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "4","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "8","Patus", 12,"Patus")
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "16","Patus", 12,"Patus")
+
+  dataset$opttype <- factor(dataset$opttype,levels=c("Patus","Origin","+SIMD+Cflag","+Tiling","+Unrolling")) 
   
   # As the above set the Gflops as string, So we should change it back to numeric
-  dataset$Gflops = as.numeric(dataset$Gflops)
-  
-  dataset_order <- dataset[dataset$opttype=="Patus",]
-  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="Origin",])
-  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+SIMD+Cflag",])
-  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+Tiling",])
-  dataset_order <- rbind(dataset_order,dataset[dataset$opttype=="+Unrolling",])
-  levels(dataset$opttype) <- c("Patus","Origin","+SIMD+Cflag","+Tiling","+Unrolling")
-  # ggplot(dataset[dataset$opttype!"Patus",], aes(OMP,Gflops, fill=opttype)) + 
+  dataset[nrow(dataset)+1,] <- c("FDTD", "1","Patus", 4.729736)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "2","Patus",9.054801 )
+  dataset[nrow(dataset)+1,] <- c("FDTD", "4","Patus", 16.626801)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "8","Patus", 28.398989)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "16","Patus", 31.851177)
+
+  dataset[nrow(dataset)+1,] <- c("HEAT", "1","Patus", 7.203600)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "2","Patus", 15.616028)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "4","Patus", 30.509474)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "8","Patus", 61.892934)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "16","Patus", 123.118650)
+
+  dataset[nrow(dataset)+1,] <- c("WAVE", "1","Patus", 7.558322)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "2","Patus", 14.158668)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "4","Patus", 24.557552)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "8","Patus", 32.910244)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "16","Patus", 65.627565)
+
+  dataset[nrow(dataset)+1,] <- c("POISSON", "1","Patus", 5.882935)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "2","Patus", 10.336370)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "4","Patus", 19.093779)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "8","Patus", 26.822708)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "16","Patus", 26.729250)
+
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "1","Patus", 2.193176)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "2","Patus", 4.853085)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "4","Patus", 8.315078)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "8","Patus", 10.576766)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "16","Patus", 11.036797)
+
+  dataset$Gflops <- as.numeric(dataset$Gflops)
   ggplot(dataset, aes(OMP,Gflops,fill=opttype)) + 
-    geom_bar(stat="identity",position=position_dodge(),width=0.7) +
+    geom_bar(stat="identity",position=position_dodge(),width=0.85,colour="#333333") +
     theme(legend.position="top",legend.title=element_blank()) + 
     #geom_bar(data=dataset[dataset$opttype=="Patus",])+
     # stat="identity",width=0.3,position=position_dodge()) +
-    facet_grid(. ~ Applications  )
-  ggsave(file="experiment/openmp_cpu.pdf", height=4,width=8)
+    facet_grid(. ~ Applications  ) + 
+    scale_fill_manual(values=grey.colors(5)) + 
+    theme_my() + 
+    labs(x="Threads Number") + 
+    theme(text=element_text(size=20),
+          axis.title.x = element_text(size = 25),
+          axis.title.y = element_text(size = 25),
+          panel.background=element_rect(fill="white"))
+  ggsave(file="experiment/openmp_cpu.pdf", height=8,width=20)
 }
 
 
