@@ -294,9 +294,8 @@ GetEachOptBestGflops <- function() {
     n <- 1
     for (nt in nt_str)
     { 
-      #browser()
       #origin
-      opt_str <- "OptType like '%Origin%'"
+      opt_str <- "OptType in ('Origin', 'Origin-omp')"
       condit <- sprintf("SpecificsId = %s and %s and %s order by Gflops desc limit 1", info$id,nt,opt_str )
       tmp <-  performanceDB.SQL.select(selectcondition = condit,dbname = "hps", tbname = "optVariant")
       if(nrow(tmp)==1)
@@ -326,37 +325,56 @@ GetEachOptBestGflops <- function() {
     }
   }
   print(dataset)
-  
   #best performance achieve finished 
   return(dataset)
   
 }
 
-
-theme_my <- function() {
-  require(grid)
-  theme_grey() + theme(axis.title.x = element_text(face="bold", size=12),
-                     axis.title.y = element_text(face="bold", size=12, angle=90),
-                     panel.grid.major = element_blank(), # switch off major gridlines
-                     panel.grid.minor = element_blank(), # switch off minor gridlines
-                     legend.position="top",
-                     legend.title=element_blank()
-                     )
+#paint the similar discovery
+similar_discovery <- function()
+{
+  NSdata1 <- NOS_Similarty(12750,12778,"")
+  NSdata2 <- NOS_Similarty(12781,12783,"")
+  
+  height <- 6
+  width <- 5.5
+  ca <- 1.5
+  cl <-1.5
+  cm <-2
+  ################# group B #####################
+  pdf("example_similar_number_50_78.pdf",height,width)
+  plot((NSdata1$x),NSdata1$y,
+       xlim=c(max(NSdata1$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Number of same strategies",main="Group A: Same Strategies")
+  abline(h=0,col="red")  
+  dev.off()
+  
+  pdf("example_similar_ratio_50_78.pdf",height,width)
+  plot((NSdata1$x),NSdata1$y/(NSdata1$x),
+       xlim=c(max(NSdata1$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Similarity ratio",main="Group A: Similarity Ratio")
+  abline(h=0,col="red")  
+  dev.off()
+  
+  ################# group B #####################
+  pdf("example_nosimilar_number_81_83.pdf",height,width)
+  plot((NSdata2$x),NSdata2$y,
+       xlim=c(max(NSdata2$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Number of same strategies",main="Group B: Same Strategies")
+  abline(h=0,col="red")  
+  dev.off()
+  
+  pdf("example_nosimilar_ratio_81_83.pdf",height,width)
+  plot((NSdata2$x),NSdata2$y/(NSdata2$x),
+       xlim=c(max(NSdata2$x),1),
+       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Similarity ratio",main="Group B: Similarity Ratio")
+  abline(h=0,col="red")  
+  dev.off()
 }
 
-
-###################################################################################################
-#####  
-#####               The Test
-#####
-###################################################################################################
-
-
-
-
-if (FALSE) {
+PlotTuningCompare <- function() {
   ########## CompareTuning ###############
-  function_name  <-  c("FDTD", "heat_3D", "JACOBI", "POISSON", "WAVE")
+  function_name  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
   cpu_targetId  <-  c(12699, 12735, 12739, 12738, 12736)
   cpu_predictId  <- c(12792, 12792, 12787, 12786, 12793)
   
@@ -394,7 +412,7 @@ if (FALSE) {
   setwd("..")
 }
 
-if (FALSE) {
+PlotEachOptimizationGPU <- function() {
   
   #############################################################################
   #    get the graph of the best gflops of each optimization methods on gpu
@@ -467,62 +485,286 @@ if (FALSE) {
   par(opar)
 }
 
+PlotCodeAmount <- function() {
+  ###########################################################
+  # plot the graph of dsl,manual,generated code
+  ##########################################################
+  
+  
+  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
+  cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
+  cuda_specificIds <- c(12745, 12746,12747, 12743,  12744)
+  
+  #####################CPU################################
+  
+  dataset <- data.frame(row.names=c("DSL", "Manual", "Generated"))
+  dataset <- cbind(dataset, c(32,28,33))
+  dataset <- cbind(dataset, c(10,45,93))
+  dataset <- cbind(dataset, c(23,45,93))
+  dataset <- cbind(dataset, c(11,10,15))
+  dataset <- cbind(dataset, c(11,11,16))
+  
+  colnames(dataset) <- benchmark_names
+  setwd("experiment")
+  opar <- par(no.readonly=TRUE)
+  #par(cex.lab=1.2)
+  #par(cex.main=10)
+  pdf("code_amount_cpu.pdf",width=12,height=8.5)
+  barplot(as.matrix(dataset),
+          main="The Size Of Code",
+          xlab="Applications", ylab="Line Of Code",
+          cex.main=3,
+          xlim=c(0,20),
+          #  ylim=c(0,120),
+          angle=45,
+          density=100,
+          cex.names=2,
+          cex.lab=1.5,
+          cex.axis=1.5,
+          #horiz = TRUE,
+          legend.text=rownames(dataset),
+          args.legend = list(x = "topright",cex=1.5),
+          beside=TRUE)
+  
+  dev.off()
+  #####################CUDA################################
+  dataset <- data.frame(row.names=c("DSL", "Manual", "Generated"))
+  dataset <- cbind(dataset, c(32,168,174))
+  dataset <- cbind(dataset, c(10,65,73))
+  dataset <- cbind(dataset, c(23,92,100))
+  dataset <- cbind(dataset, c(11,49,57))
+  dataset <- cbind(dataset, c(11,52,65))
+  
+  colnames(dataset) <- benchmark_names
+  pdf("code_amount_cuda.pdf",width=12,height=8.5)
+  barplot(as.matrix(dataset),
+          main="The Size Of Code",
+          cex.main=3,
+          xlab="Applications", ylab="Line Of Code",
+          xlim=c(0,20),
+          #ylim=c(0,190),
+          angle=45,
+          density=100,
+          cex.names=2,
+          cex.lab=1.5,
+          cex.axis=1.5,
+          #horiz = TRUE,
+          legend.text=rownames(dataset),
+          args.legend = list(x = "topright",cex=1.5),
+          beside=TRUE)
+  
+  par(opar)
+  dev.off()
+  setwd("..")
+  
+}
 
-
-
-
-
-#paint the similar discovery
-similar_discovery <- function()
+getAverageSpeedup<- function()
 {
-  NSdata1 <- NOS_Similarty(12750,12778,"")
-  NSdata2 <- NOS_Similarty(12781,12783,"")
+  dataset <- GetEachOptBestGflops()
+  dataset$Gflops<- as.numeric(dataset$Gflops)
+  bestperformance <- ddply(dataset,c("Applications","OMP"),
+                           function(x){
+                             max_gflops <-max(x$Gflops)
+                             origin_gflops<-x[x$opttype=="Origin",]$Gflops
+                             data.frame(origingflops=origin_gflops,maxGflops=max_gflops,Applications=x$Applications[1],OMP=as.numeric(as.character(x$OMP[1])))
+                           })
   
-  height <- 6
-  width <- 5.5
-  ca <- 1.5
-  cl <-1.5
-  cm <-2
-  ################# group B #####################
-  pdf("example_similar_number_50_78.pdf",height,width)
-  plot((NSdata1$x),NSdata1$y,
-       xlim=c(max(NSdata1$x),1),
-       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Number of same strategies",main="Group A: Same Strategies")
-  abline(h=0,col="red")  
-  dev.off()
   
-  pdf("example_similar_ratio_50_78.pdf",height,width)
-  plot((NSdata1$x),NSdata1$y/(NSdata1$x),
-       xlim=c(max(NSdata1$x),1),
-       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Similarity ratio",main="Group A: Similarity Ratio")
-  abline(h=0,col="red")  
-  dev.off()
+  bestperformance$speedup <- bestperformance$maxGflops/bestperformance$origingflops
+  cpuave<- ave(bestperformance$speedup)[1]
   
-  ################# group B #####################
-  pdf("example_nosimilar_number_81_83.pdf",height,width)
-  plot((NSdata2$x),NSdata2$y,
-       xlim=c(max(NSdata2$x),1),
-       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Number of same strategies",main="Group B: Same Strategies")
-  abline(h=0,col="red")  
-  dev.off()
+  ######## CUDA #########################3
+  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
+  cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
   
-  pdf("example_nosimilar_ratio_81_83.pdf",height,width)
-  plot((NSdata2$x),NSdata2$y/(NSdata2$x),
-       xlim=c(max(NSdata2$x),1),
-       col="blue",pch=19,type="b",cex.main=cm,cex.axis=ca,cex.lab=cl,xlab="Number of best strategies",ylab="Similarity ratio",main="Group B: Similarity Ratio")
-  abline(h=0,col="red")  
-  dev.off()
+  gpudata <- NA
+  for (specificId in cuda_specificIds) {
+    origin_flops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
+    max_flops <- performanceDB.GetVariantInfo(specificId, "", 1)$Gflops
+    specificId_data <- data.frame(maxflops=max_flops,originflops=origin_flops) 
+    if (is.na(gpudata)&&length(gpudata)==1) {
+      gpudata <- specificId_data
+    } else {
+      gpudata <- rbind(gpudata, specificId_data)
+    }
+  } 
+  gpudata$speedup <-gpudata$maxflops/gpudata$originflops
+  gpuave<- ave(gpudata$speedup)[1]
   
+  return(data.frame(cpu=cpuave,gpu))
+}
+
+PlotEachOrBestOptimizationCPU <- function(flag=TRUE) {
+  # Plot the contribution of each opttype or just plot the best gflops
+  # 
+  # flag = TRUE => plot the contribution of each opttype
+  # flag = FALSE => plot the best
+
+  ####################################################################
+  ##           Plot the contribution of each opttype
+  ####################################################################
+  #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
+  dataset <- GetEachOptBestGflops()
+  
+  library(ggplot2)
+  
+  dataset$Applications = factor(dataset$Applications)
+  dataset$OMP = factor(dataset$OMP,levels=c("1","2","4","8","16"))
+  dataset$opttype = factor(dataset$opttype)
+  dataset$Gflops = as.numeric(dataset$Gflops)
+  
+  # If the later Optimization gflops less then the before, use the before
+  library("plyr")
+  dataset <- ddply(dataset, c("Applications", "OMP"), 
+                   function(x){
+                     stopifnot(nrow(x) <= 4)  # Origin ,SIMD, Tiling, Unrolling
+                     GetGflops <- function(opttype) {
+                       
+                       gflops <- x[x$opttype==opttype,]$Gflops
+                       if(length(gflops) == 0) {
+                         gflops <- 0
+                       }
+                       return(gflops)
+                     }
+                     tmp_origin <- GetGflops("Origin")
+                     tmp_simd <- GetGflops("+SIMD+Cflag")
+                     tmp_tiling <- GetGflops("+Tiling")
+                     tmp_unrolling <- GetGflops("+Unrolling")
+                     
+                     origin <- tmp_origin
+                     simd <- max(tmp_simd,tmp_origin)
+                     tiling <- max(tmp_tiling,simd)
+                     unrolling <- max(tmp_unrolling,tiling)
+                     
+                     if (flag) {
+                       data.frame(opttype=c("Origin","+SIMD+Cflag","+Tiling","+Unrolling"),
+                                Gflops=c(origin, simd, tiling, unrolling))
+                     } else {
+                       # As the unrolling the max gflops 
+                       data.frame(opttype=c("Origin","+Autotuning"),
+                                Gflops=c(origin, unrolling))
+                     }
+                   })
+
+  if (flag) {
+    dataset$opttype <- factor(dataset$opttype,levels=c("Patus","Origin","+SIMD+Cflag","+Tiling","+Unrolling")) 
+  } else {
+    
+    dataset$opttype <- factor(dataset$opttype,levels=c("Patus","Origin","+Autotuning")) 
+  }
+  
+  # As the above set the Gflops as string, So we should change it back to numeric
+     dataset[nrow(dataset)+1,] <- c("FDTD", "1","Patus", 4.729736)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "2","Patus",9.054801 )
+  dataset[nrow(dataset)+1,] <- c("FDTD", "4","Patus", 16.626801)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "8","Patus", 28.398989)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "16","Patus", 31.851177)
+
+  dataset[nrow(dataset)+1,] <- c("HEAT", "1","Patus", 7.203600)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "2","Patus", 15.616028)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "4","Patus", 30.509474)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "8","Patus", 61.892934)
+  dataset[nrow(dataset)+1,] <- c("HEAT", "16","Patus", 123.118650)
+
+  dataset[nrow(dataset)+1,] <- c("WAVE", "1","Patus", 7.558322)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "2","Patus", 14.158668)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "4","Patus", 24.557552)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "8","Patus", 32.910244)
+  dataset[nrow(dataset)+1,] <- c("WAVE", "16","Patus", 65.627565)
+
+  dataset[nrow(dataset)+1,] <- c("POISSON", "1","Patus", 5.882935)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "2","Patus", 10.336370)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "4","Patus", 19.093779)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "8","Patus", 26.822708)
+  dataset[nrow(dataset)+1,] <- c("POISSON", "16","Patus", 26.729250)
+
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "1","Patus", 2.193176)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "2","Patus", 4.853085)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "4","Patus", 8.315078)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "8","Patus", 10.576766)
+  dataset[nrow(dataset)+1,] <- c("JACOBI", "16","Patus", 11.036797)
+
+  dataset$Gflops <- as.numeric(dataset$Gflops)
+ 
+  ggplot(dataset, aes(OMP,Gflops,fill=opttype)) + 
+    geom_bar(stat="identity",position=position_dodge(),width=0.85,colour="#333333") +
+    theme(legend.position="top",legend.title=element_blank()) + 
+    #geom_bar(data=dataset[dataset$opttype=="Patus",])+
+    # stat="identity",width=0.3,position=position_dodge()) +
+    facet_grid(. ~ Applications  ) + 
+    scale_fill_manual(values=grey.colors(5)) + 
+    theme_my() + 
+    labs(x="Threads Number") + 
+    theme(text=element_text(size=20),
+          axis.title.x = element_text(size = 25),
+          axis.title.y = element_text(size = 25)
+          )
+  ggsave(file="experiment/openmp_cpu.pdf", height=8,width=20)
+}
+
+PlotWeakScaling <- function()
+{
+  ################WEAk Scaling########################
+  
+  dataset <- GetEachOptBestGflops()
+  dataset$Gflops <- as.numeric(dataset$Gflops)
+  
+  dataset2 <- ddply(dataset,c("Applications","OMP"),
+                    function(x){
+                      max_gflops <- max(x$Gflops)
+                      data.frame(maxGflops=max_gflops,Applications=x$Applications[1],OMP=as.numeric(as.character(x$OMP[1])))
+                    })
+  
+  dataset2$Applications = factor(dataset2$Applications)
+  dataset2$Gflops = as.numeric(dataset2$maxGflops)
+  dataset2 <- ddply(dataset2,c("Applications"),
+                    function(x){
+                      tmp <- x$maxGflops/ x[x$OMP==1,]$maxGflops
+                      data.frame(Speedup=tmp,Applications=x$Applications[1],OMP=x$OMP)
+                    })
+  
+  
+  
+  
+  
+  library(ggplot2)
+  
+  p <- ggplot(dataset2,aes(x = OMP, y =Speedup,colour=factor(Applications) )) + 
+    geom_point(size=4) + geom_line(size=1.5) + 
+    theme(legend.position="top",legend.title=element_blank(),axis.text=element_text(size=20),
+          axis.title=element_text(size=20),legend.text=element_text(size=20),panel.background=element_rect(fill="white"))+labs(x = "Thread Number")
+  ggsave(file="speedup.pdf",width=10,height=6) 
   
 }
 
 
+theme_my <- function() {
+  require(grid)
+  theme_grey() + theme(axis.title.x = element_text(face="bold", size=12),
+                     axis.title.y = element_text(face="bold", size=12, angle=90),
+                     panel.grid.major = element_blank(), # switch off major gridlines
+                     panel.grid.minor = element_blank(), # switch off minor gridlines
+                     panel.background=element_rect(fill="white"),
+                     legend.position="top",
+                     legend.title=element_blank()
+                     )
+}
 
 
+###################################################################################################
+#####  
+#####               The Test
+#####
+###################################################################################################
 
-
-
-
+if (TRUE) {
+  PlotEachOptimizationGPU()
+  PlotEachOrBestOptimizationCPU()
+  PlotCodeAmount()
+  PlotWeakScaling()
+  PlotTuningCompare()
+}
 
 
 if(FALSE){
@@ -546,10 +788,6 @@ if(FALSE){
   }
   exp_sim <- searchMostsimilarByExp(12746,"cuda")
   prd_sim <- searchMostsimilarByModel(12746,"cuda")
-  
-  
-  
-  
   
   cpuspecs <- performanceDB.SQL.selectSpecifics(attnames=c("specifics.id","ProgrammingModel","FunctionName"),"ProgrammingModel='cpu'")
   for(i in 1:nrow(cpuspecs))
@@ -643,269 +881,12 @@ if (FALSE) {
 }
 
 
-if (FALSE) {
-  ############################################################
-  # Find the best similarity model to meet the cpu 
-  ###########################################################
-  
-  
-}
-
-
-if (FALSE) {
-  ###########################################################
-  # plot the graph of dsl,manual,generated code
-  ##########################################################
-  
-  
-  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
-  cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
-  cuda_specificIds <- c(12745, 12746,12747, 12743,  12744)
-  
-  #####################CPU################################
-  
-  dataset <- data.frame(row.names=c("DSL", "Manual", "Generated"))
-  dataset <- cbind(dataset, c(32,28,33))
-  dataset <- cbind(dataset, c(10,45,93))
-  dataset <- cbind(dataset, c(23,45,93))
-  dataset <- cbind(dataset, c(11,10,15))
-  dataset <- cbind(dataset, c(11,11,16))
-  
-  colnames(dataset) <- benchmark_names
-  setwd("experiment")
-  opar <- par(no.readonly=TRUE)
-  #par(cex.lab=1.2)
-  #par(cex.main=10)
-  pdf("code_amount_cpu.pdf",width=12,height=8.5)
-  barplot(as.matrix(dataset),
-          main="The Size Of Code",
-          xlab="Applications", ylab="Line Of Code",
-          cex.main=3,
-          xlim=c(0,20),
-          #  ylim=c(0,120),
-          angle=45,
-          density=100,
-          cex.names=2,
-          cex.lab=1.5,
-          cex.axis=1.5,
-          #horiz = TRUE,
-          legend.text=rownames(dataset),
-          args.legend = list(x = "topright",cex=1.5),
-          beside=TRUE)
-  
-  dev.off()
-  #####################CUDA################################
-  dataset <- data.frame(row.names=c("DSL", "Manual", "Generated"))
-  dataset <- cbind(dataset, c(32,168,174))
-  dataset <- cbind(dataset, c(10,65,73))
-  dataset <- cbind(dataset, c(23,92,100))
-  dataset <- cbind(dataset, c(11,49,57))
-  dataset <- cbind(dataset, c(11,52,65))
-  
-  colnames(dataset) <- benchmark_names
-  pdf("code_amount_cuda.pdf",width=12,height=8.5)
-  barplot(as.matrix(dataset),
-          main="The Size Of Code",
-          cex.main=3,
-          xlab="Applications", ylab="Line Of Code",
-          xlim=c(0,20),
-          #ylim=c(0,190),
-          angle=45,
-          density=100,
-          cex.names=2,
-          cex.lab=1.5,
-          cex.axis=1.5,
-          #horiz = TRUE,
-          legend.text=rownames(dataset),
-          args.legend = list(x = "topright",cex=1.5),
-          beside=TRUE)
-  
-  par(opar)
-  dev.off()
-  setwd("..")
-  
-}
-
-getAverageSpeedup<- function()
-{
-  dataset <- GetEachOptBestGflops()
-  dataset$Gflops<- as.numeric(dataset$Gflops)
-  bestperformance <- ddply(dataset,c("Applications","OMP"),
-                           function(x){
-                             max_gflops <-max(x$Gflops)
-                             origin_gflops<-x[x$opttype=="Origin",]$Gflops
-                             data.frame(origingflops=origin_gflops,maxGflops=max_gflops,Applications=x$Applications[1],OMP=as.numeric(as.character(x$OMP[1])))
-                           })
-  
-  
-  bestperformance$speedup <- bestperformance$maxGflops/bestperformance$origingflops
-  cpuave<- ave(bestperformance$speedup)[1]
-  
-  
-  
-  
-  ######## CUDA #########################3
-  benchmark_names  <-  c("FDTD", "HEAT", "JACOBI", "POISSON", "WAVE")
-  cuda_specificIds <- c(12745, 12746, 12747, 12743, 12744)
-  
-  gpudata <- NA
-  for (specificId in cuda_specificIds) {
-    origin_flops <- performanceDB.GetVariantInfo(specificId, "origin", 1)$Gflops
-    max_flops <- performanceDB.GetVariantInfo(specificId, "", 1)$Gflops
-    specificId_data <- data.frame(maxflops=max_flops,originflops=origin_flops) 
-    if (is.na(gpudata)&&length(gpudata)==1) {
-      gpudata <- specificId_data
-    } else {
-      gpudata <- rbind(gpudata, specificId_data)
-    }
-  } 
-  gpudata$speedup <-gpudata$maxflops/gpudata$originflops
-  gpuave<- ave(gpudata$speedup)[1]
-  
-  
-  
-  
-  
-  
-  
-  
-  return data.frame(cpu=cpuave,gpu)
-}
 
 
 
 
 
 
-
-if (TRUE) {
-  
-  ####################################################################
-  ##           Plot the contribution of each opttype
-  ####################################################################
-  #colnames(dataset) <- c("Applications", "OMP", "opttype", "Gflops")
-  dataset <- GetEachOptBestGflops()
-  
-  library(ggplot2)
-  
-  dataset$Applications = factor(dataset$Applications)
-  dataset$OMP = factor(dataset$OMP,levels=c("1","2","4","8","16"))
-  dataset$opttype = factor(dataset$opttype)
-  dataset$Gflops = as.numeric(dataset$Gflops)
-  
-  # If the later Optimization gflops less then the before, use the before
-  library("plyr")
-  dataset <- ddply(dataset, c("Applications", "OMP"), 
-                   function(x){
-                     stopifnot(nrow(x) <= 4)  # Origin ,SIMD, Tiling, Unrolling
-                     GetGflops <- function(opttype) {
-                       
-                       gflops <- x[x$opttype==opttype,]$Gflops
-                       if(length(gflops) == 0) {
-                         gflops <- 0
-                       }
-                       return(gflops)
-                     }
-                     tmp_origin <- GetGflops("Origin")
-                     tmp_simd <- GetGflops("+SIMD+Cflag")
-                     tmp_tiling <- GetGflops("+Tiling")
-                     tmp_unrolling <- GetGflops("+Unrolling")
-                     
-                     origin <- tmp_origin
-                     simd <- max(tmp_simd,tmp_origin)
-                     tiling <- max(tmp_tiling,simd)
-                     unrolling <- max(tmp_unrolling,tiling)
-                     
-                     data.frame(opttype=c("Origin","+SIMD+Cflag","+Tiling","+Unrolling"),
-                                Gflops=c(origin, simd, tiling, unrolling))
-                   })
-
-  dataset$opttype <- factor(dataset$opttype,levels=c("Patus","Origin","+SIMD+Cflag","+Tiling","+Unrolling")) 
-  
-  # As the above set the Gflops as string, So we should change it back to numeric
-     dataset[nrow(dataset)+1,] <- c("FDTD", "1","Patus", 4.729736)
-  dataset[nrow(dataset)+1,] <- c("FDTD", "2","Patus",9.054801 )
-  dataset[nrow(dataset)+1,] <- c("FDTD", "4","Patus", 16.626801)
-  dataset[nrow(dataset)+1,] <- c("FDTD", "8","Patus", 28.398989)
-  dataset[nrow(dataset)+1,] <- c("FDTD", "16","Patus", 31.851177)
-
-  dataset[nrow(dataset)+1,] <- c("HEAT", "1","Patus", 7.203600)
-  dataset[nrow(dataset)+1,] <- c("HEAT", "2","Patus", 15.616028)
-  dataset[nrow(dataset)+1,] <- c("HEAT", "4","Patus", 30.509474)
-  dataset[nrow(dataset)+1,] <- c("HEAT", "8","Patus", 61.892934)
-  dataset[nrow(dataset)+1,] <- c("HEAT", "16","Patus", 123.118650)
-
-  dataset[nrow(dataset)+1,] <- c("WAVE", "1","Patus", 7.558322)
-  dataset[nrow(dataset)+1,] <- c("WAVE", "2","Patus", 14.158668)
-  dataset[nrow(dataset)+1,] <- c("WAVE", "4","Patus", 24.557552)
-  dataset[nrow(dataset)+1,] <- c("WAVE", "8","Patus", 32.910244)
-  dataset[nrow(dataset)+1,] <- c("WAVE", "16","Patus", 65.627565)
-
-  dataset[nrow(dataset)+1,] <- c("POISSON", "1","Patus", 5.882935)
-  dataset[nrow(dataset)+1,] <- c("POISSON", "2","Patus", 10.336370)
-  dataset[nrow(dataset)+1,] <- c("POISSON", "4","Patus", 19.093779)
-  dataset[nrow(dataset)+1,] <- c("POISSON", "8","Patus", 26.822708)
-  dataset[nrow(dataset)+1,] <- c("POISSON", "16","Patus", 26.729250)
-
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "1","Patus", 2.193176)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "2","Patus", 4.853085)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "4","Patus", 8.315078)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "8","Patus", 10.576766)
-  dataset[nrow(dataset)+1,] <- c("JACOBI", "16","Patus", 11.036797)
-
-  dataset$Gflops <- as.numeric(dataset$Gflops)
- 
-  ggplot(dataset, aes(OMP,Gflops,fill=opttype)) + 
-    geom_bar(stat="identity",position=position_dodge(),width=0.85,colour="#333333") +
-    theme(legend.position="top",legend.title=element_blank()) + 
-    #geom_bar(data=dataset[dataset$opttype=="Patus",])+
-    # stat="identity",width=0.3,position=position_dodge()) +
-    facet_grid(. ~ Applications  ) + 
-    scale_fill_manual(values=grey.colors(5)) + 
-    theme_my() + 
-    labs(x="Threads Number") + 
-    theme(text=element_text(size=20),
-          axis.title.x = element_text(size = 25),
-          axis.title.y = element_text(size = 25),
-          panel.background=element_rect(fill="white"))
-  ggsave(file="experiment/openmp_cpu.pdf", height=8,width=20)
-}
-
-
-if(FALSE)
-{
-  ################WEAk Scaling########################
-  
-  dataset <- GetEachOptBestGflops()
-  dataset$Gflops <- as.numeric(dataset$Gflops)
-  
-  dataset2 <- ddply(dataset,c("Applications","OMP"),
-                    function(x){
-                      max_gflops <- max(x$Gflops)
-                      data.frame(maxGflops=max_gflops,Applications=x$Applications[1],OMP=as.numeric(as.character(x$OMP[1])))
-                    })
-  
-  dataset2$Applications = factor(dataset2$Applications)
-  dataset2$Gflops = as.numeric(dataset2$maxGflops)
-  dataset2 <- ddply(dataset2,c("Applications"),
-                    function(x){
-                      tmp <- x$maxGflops/ x[x$OMP==1,]$maxGflops
-                      data.frame(Speedup=tmp,Applications=x$Applications[1],OMP=x$OMP)
-                    })
-  
-  
-  
-  
-  
-  library(ggplot2)
-  
-  p <- ggplot(dataset2,aes(x = OMP, y =Speedup,colour=factor(Applications) )) + 
-    geom_point(size=4) + geom_line(size=1.5) + 
-    theme(legend.position="top",legend.title=element_blank(),axis.text=element_text(size=20),
-          axis.title=element_text(size=20),legend.text=element_text(size=20),panel.background=element_rect(fill="white"))+labs(x = "Thread Number")
-  ggsave(file="speedup.pdf",width=10,height=6) 
-  
-}
 
 if (FALSE) {
   
