@@ -129,6 +129,39 @@ NOS_Similarty <- function(id_a,id_b,opttype)
   return (r)
 }
 
+SimilartyArea <- function(id_a, id_b, opttype) {
+  a_variant <- performanceDB.GetVariantInfo(id_a,opttype,omp=FALSE) 
+  b_variant <- performanceDB.GetVariantInfo(id_b,opttype,omp=FALSE) 
+  FN <- min(nrow(a_variant),nrow(b_variant))
+
+  x <- c()
+  y_low <- c()
+  y_mid <- c()
+  y_upper <- c()
+
+  for(i in as.integer(FN/100):1)
+  {
+    tmpx <- i*100
+    x <- c(x,tmpx)
+    common_num <- performanceDB.GetSimilarNumber(a_variant[1:tmpx,]$OptConfig,b_variant[1:tmpx,]$OptConfig)
+    
+    y_low <- c(y_low, tmpx - common_num)
+    y_mid <- c(y_mid, tmpx)
+    y_upper <- c(y_upper, 2*tmpx - common_num)
+  }
+  for(i in as.integer((90)/10):1)
+  {
+    tmpx <- i*10
+    x <- c(x,tmpx)
+    common_num <- performanceDB.GetSimilarNumber(a_variant[1:tmpx,]$OptConfig,b_variant[1:tmpx,]$OptConfig)
+    
+    y_low <- c(y_low, tmpx - common_num)
+    y_mid <- c(y_mid, tmpx)
+    y_upper <- c(y_upper, 2*tmpx - common_num)
+  }
+  return (list(x_axis=x,y_axis_low=y_low,y_axis_mid=y_mid,y_axis_upper=y_upper))
+
+}
 
 searchMostsimilarByModel <- function(id,pm)
 {
@@ -170,7 +203,6 @@ searchMostsimilarByExp <- function(id,pm,base=50)
   }
   return (exp_sim[order(exp_sim$similarty,decreasing=T),])
 }
-
 
 
 comparisonValues <- function(specificsId, programmingModel, 
@@ -657,7 +689,7 @@ PlotEachOrBestOptimizationCPU <- function(flag=TRUE) {
   }
   
   # As the above set the Gflops as string, So we should change it back to numeric
-     dataset[nrow(dataset)+1,] <- c("FDTD", "1","Patus", 4.729736)
+  dataset[nrow(dataset)+1,] <- c("FDTD", "1","Patus", 4.729736)
   dataset[nrow(dataset)+1,] <- c("FDTD", "2","Patus",9.054801 )
   dataset[nrow(dataset)+1,] <- c("FDTD", "4","Patus", 16.626801)
   dataset[nrow(dataset)+1,] <- c("FDTD", "8","Patus", 28.398989)
@@ -740,6 +772,39 @@ PlotWeakScaling <- function()
   
 }
 
+PlotSimilarArea <- function() {
+  benchmark_names  <-  c("FDTD", "HEAT", "HIMENO", "POISSON", "WAVE")
+  cpu_specificIds <- c(12699, 12735, 12739, 12738, 12736)
+  cuda_specificIds <- c(12745, 12746,12747, 12743,  12744)
+
+  contrast_cnt <- 4
+  #################CPU###################################
+  
+
+  for (specificId in cpu_specificIds) {
+    
+    contrast_specificIds <- unlist(searchMostsimilarByExp(specificId,"cpu")["id"])[2:contrast_cnt]
+
+    for (contrast_id in contrast_specificIds) {
+      similar <- SimilartyArea(specificId, contrast_id,"")
+      x = unlist(similar["x_axis"])
+      y_low = unlist(similar["y_axis_low"])
+      y_mid = unlist(similar["y_axis_mid"])
+      y_upper = unlist(similar["y_axis_upper"])
+
+      plot(x,y_upper,xlim=c(max(x),min(x)),type='n')
+      lines(x,y_low)
+      lines(x,y_mid)
+      lines(x,y_upper)
+      size = length(x)
+      polygon(c(x,x[size:1]), c(rep(0,size),y_mid[length(x):1]), col = "yellow")
+      polygon(c(x,x[size:1]), c(y_upper,y_low[length(x):1]), col = "blue")
+     
+      # Common area
+      polygon(c(x,x[size:1]), c(y_low,y_mid[size:1]), col = "red")
+    }
+  }
+}
 
 theme_my <- function() {
   require(grid)
@@ -766,6 +831,12 @@ if (FALSE) {
   PlotCodeAmount()
   PlotWeakScaling()
   PlotTuningCompare()
+}
+
+if (TRUE) {
+
+  similar <- SimilartyArea(12699,12736,"")
+  PlotSimilarArea()
 }
 
 

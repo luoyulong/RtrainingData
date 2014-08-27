@@ -567,6 +567,7 @@ performanceDB.GetSimilarNumber <- function(A,B)
   equals <- length(A)+length(B)-length(both)
   return (equals)
 }
+
 performanceDB.GetSimilarFactor <- function(a_id,b_id,size,opttype,ifprint=TRUE)
 {
   
